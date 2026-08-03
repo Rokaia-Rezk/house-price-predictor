@@ -135,25 +135,25 @@
     </div>
 
     <script>
-        // تحميل المدن تلقائياً من ملف locations.json
-        async function loadLocations() {
-            try {
-                const response = await fetch('/locations.json'); // أو المسار المباشر لو محتاجة
-                if (!response.ok) return;
-                const locations = await response.json();
-                const select = document.getElementById('location_grouped');
-                select.innerHTML = '<option value="Other">Other</option>';
-                locations.forEach(loc => {
-                    const opt = document.createElement('option');
-                    opt.value = loc;
-                    opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
-                    select.appendChild(opt);
-                });
-            } catch (e) {
-                console.log("Could not load locations.json, using default.");
-            }
-        }
-        loadLocations();
+  // تحميل المدن من مسار الباك إند
+async function loadLocations() {
+    try {
+        const response = await fetch('/locations.json');
+        if (!response.ok) return;
+        const locations = await response.json();
+        const select = document.getElementById('location_grouped');
+        select.innerHTML = '<option value="Other">Other</option>';
+        locations.forEach(loc => {
+            const opt = document.createElement('option');
+            opt.value = loc;
+            opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+            select.appendChild(opt);
+        });
+    } catch (e) {
+        console.log("Error loading locations");
+    }
+}
+loadLocations();
 
         // إرسال البيانات للباك اند والتوقع
         document.getElementById('predictForm').addEventListener('submit', async (e) => {

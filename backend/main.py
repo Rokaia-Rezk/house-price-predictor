@@ -47,6 +47,20 @@ def read_root():
             return f.read()
     return "<h1>House Price Predictor API is Running!</h1>"
 
+
+import os
+import json
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+json_path = os.path.join(BASE_DIR, "locations.json")
+
+@app.get("/locations.json")
+def get_locations():
+    if os.path.exists(json_path):
+        with open(json_path, "r") as f:
+            return json.load(f)
+    return ["Other"]
+
 # Health Check Route
 @app.get("/health", tags=["Health"])
 def health_check():
