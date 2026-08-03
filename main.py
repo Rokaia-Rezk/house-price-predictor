@@ -1,17 +1,15 @@
-import os
 import json
+import os
+import traceback
 import joblib
-import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 # Initialize FastAPI app
-app = FastAPI(
-    title="House Price Prediction API",
-    version="1.0.0"
-)
+app = FastAPI(title="House Price Prediction API", version="1.0.0")
 
 # Enable CORS for frontend communication
 app.add_middleware(
@@ -28,55 +26,76 @@ model_path = os.path.join(BASE_DIR, "house_price.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
 model_pipeline = None
-import joblib
-import traceback
 
 try:
-    model_pipeline = joblib.load(model_path)
+  model_pipeline = joblib.load(model_path)
 except Exception as e:
-    print("LOAD ERROR:", traceback.format_exc())
-    model_pipeline = None
+  print("LOAD ERROR:", traceback.format_exc())
+  model_pipeline = None
+
 
 # Frontend HTML Route
 @app.get("/", response_class=HTMLResponse, tags=["Frontend"])
 def read_root():
-    """Serves the frontend HTML index page"""
-    html_path = os.path.join(BASE_DIR, "..", "frontend", "index.html")
-    if not os.path.exists(html_path):
-        html_path = os.path.join(BASE_DIR, "frontend", "index.html")
+  """Serves the frontend HTML index page"""
+  html_path = os.path.join(BASE_DIR, "..", "frontend", "index.html")
+  if not os.path.exists(html_path):
+    html_path = os.path.join(BASE_DIR, "frontend", "index.html")
 
-    if os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>House Price Predictor API is Running!</h1>"
+  if os.path.exists(html_path):
+    with open(html_path, "r", encoding="utf-8") as f:
+      return f.read()
+  return "<h1>House Price Predictor API is Running!</h1>"
+
 
 # Locations API Route
 @app.get("/locations.json")
 def get_locations():
-    if os.path.exists(json_path):
-        with open(json_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return ["Other"]
+  if os.path.exists(json_path):
+    with open(json_path, "r", encoding="utf-8") as f:
+      return json.load(f)
+  return ["Other"]
+
 
 # Health Check Route
 @app.get("/health", tags=["Health"])
 def health_check():
-    return {"status": "healthy", "model_loaded": model_pipeline is not None}
+  return {"status": "healthy", "model_loaded": model_pipeline is not None}
+
 
 # Prediction Route
 @app.post("/predict")
-def predict(data: dict):
-    try:
-        if model_pipeline is None:
-            raise HTTPException(status_code=500, detail="Model file was not loaded correctly on server startup.")
-        
-        # تحويل البيانات لـ DataFrame والتوقع
-        input_df = pd.DataFrame([data])
-        prediction_log = model_pipeline.predict(input_df)
-        prediction = float(np.exp(prediction_log[0]))
+async def predict(request: Request):
+  try:
+    if model_pipeline is None:
+      raise HTTPException(
+          status_code=500,
+          detail="Model file was not loaded correctly on server startup.",
+      )
 
-        return {"prediction": prediction}
+    # استقبال البيانات سواء جيت JSON أو Form Data لضمان عدم حدوث أي إيرور
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+      data = await request.json()
+    else:
+      form_data = await request.form()
+      data = dict(form_data)
 
-    except Exception as e:
-        print(f"Prediction Error: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+    # لو البيانات جايّة في شكل ليستة أو ديكشنري فرعي
+    if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
+      data = data["data"]
+
+    # تحويل البيانات لـ DataFrame والتوقع
+    input_df = pd.DataFrame([data])
+    
+    # التأكد من مطابقة أسماء الأعمدة أو تحويل الأنواع الرقمية لو لزم الأمر
+    prediction_log = model_pipeline.predict(input_df)
+    
+    # التعديل الهام هنا: استخدام np.expm1 بدل np.exp لتناسب معكوس np.log1p
+    prediction = float(np.expm1(prediction_log[0]))
+
+    return {"prediction": prediction}
+
+  except Exception as e:
+    print(f"Prediction Error: {traceback.format_exc()}")
+    raise HTTPException(status_code=400, detail=str(e))
