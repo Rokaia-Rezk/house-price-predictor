@@ -25,8 +25,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "house_price.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
-model_pipeline = None
-
 try:
   model_pipeline = joblib.load(model_path)
 except Exception as e:
