@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from main import app, lifespan
+from backend.main import app, lifespan
 
 def test_health_check():
     with TestClient(app) as client:
