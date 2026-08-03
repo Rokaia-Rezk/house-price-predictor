@@ -25,8 +25,7 @@ app.add_middleware(
 model_pipeline = None
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(current_dir, "best_pipeline_model.pkl")
-
+model_path = os.path.join(current_dir, "house_price.pkl")
 try:
     model_pipeline = joblib.load(model_path)
     print("Model loaded successfully!")
