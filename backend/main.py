@@ -2,9 +2,10 @@ import os
 import joblib
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -33,29 +34,39 @@ except Exception as e:
     print(f"Error loading model: {e}")
     model_pipeline = None
 
+# Frontend HTML Route (هذه الدالة هي التي ترجع صفحة الموقع الواجهة)
+@app.get("/", response_class=HTMLResponse, tags=["Frontend"])
+def read_root():
+    """Serves the frontend HTML index page"""
+    html_path = os.path.join(current_dir, "..", "frontend", "index.html")
+    if not os.path.exists(html_path):
+        html_path = os.path.join(current_dir, "frontend", "index.html")
 
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>House Price Predictor API is Running!</h1>"
+
+# Health Check Route
+@app.get("/health", tags=["Health"])
+def health_check():
+    return {"status": "healthy", "model_loaded": model_pipeline is not None}
+
+# Prediction Route
 @app.post("/predict")
 def predict(data: dict):
     try:
-        # 1. التحرّك في حالة عدم وجود الموديل
         if model_pipeline is None:
-            return {"error": "Model file was not loaded correctly on server startup."}, 500
-
-        # 2. طباعة البيانات للـ Logs عشان نشوف الـ Frontend باعت إيه
-        print("Received payload:", data)
-
-        # 3. تحويل الـ JSON لـ DataFrame
-        input_df = pd.DataFrame([data])
-
-        # 4. التوقع
-        prediction_log = model_pipeline.predict(input_df)
+            raise HTTPException(status_code=500, detail="Model file was not loaded correctly on server startup.")
         
-        # لو عاملة log transform للسعر (أو عدليها حسب الكود عندك)
-        prediction = float(np.exp(prediction_log[0]))
+        # تحويل البيانات لـ DataFrame والتوقع
+        input_df = pd.DataFrame([data])
+        prediction_log = model_pipeline.predict(input_df)
+        prediction = float(np.exp(prediction_log[0])) # أو expm1 حسب تدريب الموديل
 
         return {"prediction": prediction}
 
     except Exception as e:
-        # هيرجع الخطأ التفصيلي في الـ Response بدل ما يضرب 500 صامت!
         print(f"Prediction Error: {str(e)}")
-        return {"error": str(e)}, 400
+        raise HTTPException(status_code=400, detail=str(e))
+    
