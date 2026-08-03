@@ -6,7 +6,6 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from fastapi.responses import HTMLResponse
 
 # 1. تحديث الأعمدة لتطابق اللي اتدرب عليه الموديل بالظبط
 class PredictionRequest(BaseModel):
@@ -88,10 +87,24 @@ def predict_price(request: PredictionRequest):
     from fastapi.responses import HTMLResponse
 import os
 
+
 @app.get("/", response_class=HTMLResponse)
 def read_root():
-    html_path = os.path.join(os.path.dirname(__file__), "../frontend/index.html")
-    if os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>House Price Predictor API is Running!</h1><p>Go to <a href='/docs'>/docs</a> for API Swagger UI.</p>"
+    return """
+    <html>
+        <head>
+            <title>House Price Predictor</title>
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f4f4f9; }
+                h1 { color: #4A154B; }
+                a { display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #6B46C1; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+                a:hover { background-color: #5A32A3; }
+            </style>
+        </head>
+        <body>
+            <h1>🚀 House Price Predictor API is Live!</h1>
+            <p>Welcome to the End-to-End ML Prediction Service.</p>
+            <a href="/docs">Open API Documentation (Swagger UI)</a>
+        </body>
+    </html>
+    """
