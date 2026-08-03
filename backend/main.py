@@ -24,7 +24,6 @@ app.add_middleware(
 # Load Trained Pipeline Model
 model_pipeline = None
 
-# Load Trained Pipeline Model directly
 current_dir = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(current_dir, "best_pipeline_model.pkl")
 
@@ -35,23 +34,24 @@ except Exception as e:
     print(f"Error loading model: {e}")
     model_pipeline = None
 
-# Request Schema (Handles missing or case values safely)
-class PredictionRequest(BaseModel):
-    BHK: float = 0.0
-    size_sqft: float = 0.0
-    bathroom: float = 0.0
-    balcony: float = 0.0
-    floor_num: float = 0.0
-    total_floors: float = 0.0
-    location_grouped: str = ""
-    Furnishing: str = ""
-    facing: str = ""
-    Transaction: str = ""
-    Ownership: str = ""
+
+@app.get("/", response_class=HTMLResponse, tags=["Frontend"])
+def read_root():
+    """Serves the frontend HTML index page"""
+    html_path = os.path.join(current_dir, "..", "frontend", "index.html")
+    if not os.path.exists(html_path):
+        html_path = os.path.join(current_dir, "frontend", "index.html")
+        
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>House Price Predictor API is Running!</h1>"
+
 
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "healthy", "model_loaded": model_pipeline is not None}
+
 
 @app.post("/predict", tags=["Prediction"])
 def predict_price(payload: dict):
@@ -61,14 +61,21 @@ def predict_price(payload: dict):
     try:
         import pandas as pd
         
-        # Mapping input data flexibly
+        # Smart Dynamic Field Mapping for Frontend & Backend compatibility
+        bhk_val = payload.get("BHK") or payload.get("bhk") or payload.get("bedrooms") or 0
+        size_val = payload.get("size_sqft") or payload.get("carpet_area_sqft") or payload.get("carpet_area") or 0
+        bath_val = payload.get("bathroom") or payload.get("bathrooms") or 0
+        balcony_val = payload.get("balcony") or payload.get("balconies") or 0
+        floor_val = payload.get("floor_num") or payload.get("floor") or 0
+        total_floors_val = payload.get("total_floors") or 0
+        
         data = {
-            "BHK": float(payload.get("BHK") or payload.get("bhk") or 0),
-            "size_sqft": float(payload.get("size_sqft") or payload.get("carpet_area") or 0),
-            "bathroom": float(payload.get("bathroom") or payload.get("bathrooms") or 0),
-            "balcony": float(payload.get("balcony") or payload.get("balconies") or 0),
-            "floor_num": float(payload.get("floor_num") or payload.get("floor") or 0),
-            "total_floors": float(payload.get("total_floors") or 0),
+            "BHK": float(bhk_val),
+            "size_sqft": float(size_val),
+            "bathroom": float(bath_val),
+            "balcony": float(balcony_val),
+            "floor_num": float(floor_val),
+            "total_floors": float(total_floors_val),
             "location_grouped": str(payload.get("location_grouped") or payload.get("location") or "Other"),
             "Furnishing": str(payload.get("Furnishing") or payload.get("furnishing") or "Unfurnished"),
             "facing": str(payload.get("facing") or "North"),
