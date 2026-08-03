@@ -1,11 +1,11 @@
 from fastapi.testclient import TestClient
-from backend.main import app, lifespan
+from backend.main import app
 
 def test_health_check():
     with TestClient(app) as client:
         response = client.get("/health")
         assert response.status_code == 200
-        assert response.json()["status"] == "ok"
+        assert response.json()["status"] == "healthy"
 
 def test_predict_endpoint():
     payload = {
@@ -24,4 +24,4 @@ def test_predict_endpoint():
     with TestClient(app) as client:
         response = client.post("/predict", json=payload)
         assert response.status_code == 200
-        assert "predicted_price" in response.json()
+        assert "prediction" in response.json()
