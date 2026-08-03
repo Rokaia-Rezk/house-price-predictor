@@ -35,19 +35,19 @@ except Exception as e:
     print(f"Error loading model: {e}")
     model_pipeline = None
 
-# Request Schema
+# Request Schema (Handles missing or case values safely)
 class PredictionRequest(BaseModel):
-    BHK: float
-    size_sqft: float
-    bathroom: float
-    balcony: float
-    floor_num: float
-    total_floors: float
-    location_grouped: str
-    Furnishing: str
-    facing: str
-    Transaction: str
-    Ownership: str
+    BHK: float = 0.0
+    size_sqft: float = 0.0
+    bathroom: float = 0.0
+    balcony: float = 0.0
+    floor_num: float = 0.0
+    total_floors: float = 0.0
+    location_grouped: str = ""
+    Furnishing: str = ""
+    facing: str = ""
+    Transaction: str = ""
+    Ownership: str = ""
 
 @app.get("/health", tags=["Health"])
 def health_check():
