@@ -6,7 +6,9 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
+import os
 # 1. تحديث الأعمدة لتطابق اللي اتدرب عليه الموديل بالظبط
 class PredictionRequest(BaseModel):
     carpet_area_sqft: float = Field(..., gt=0, description="Area in sqft")
@@ -84,8 +86,7 @@ def predict_price(request: PredictionRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
     
-    from fastapi.responses import HTMLResponse
-import os
+   
 
 
 @app.get("/", response_class=HTMLResponse)
