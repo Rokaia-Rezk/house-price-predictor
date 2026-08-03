@@ -24,16 +24,16 @@ app.add_middleware(
 # Load Trained Pipeline Model
 model_pipeline = None
 
-@app.on_event("startup")
-def load_model():
-    global model_pipeline
-    try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        model_path = os.path.join(current_dir, "best_pipeline_model.pkl")
-        if os.path.exists(model_path):
-            model_pipeline = joblib.load(model_path)
-    except Exception as e:
-        print(f"Error loading model: {e}")
+# Load Trained Pipeline Model directly
+current_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(current_dir, "best_pipeline_model.pkl")
+
+try:
+    model_pipeline = joblib.load(model_path)
+    print("Model loaded successfully!")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    model_pipeline = None
 
 # Request Schema
 class PredictionRequest(BaseModel):
