@@ -49,10 +49,14 @@ def read_root():
 
 
 import os
-import json
+import joblib # أو pickle حسب ما أنتِ مستخدمة
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-json_path = os.path.join(BASE_DIR, "locations.json")
+model_path = os.path.join(BASE_DIR, "house_price.pkl")
+
+# بعدين حملي المودل كدة:
+model_pipeline = joblib.load(model_path)
+
 
 @app.get("/locations.json")
 def get_locations():
