@@ -6,6 +6,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from fastapi.responses import HTMLResponse
 
 # 1. تحديث الأعمدة لتطابق اللي اتدرب عليه الموديل بالظبط
 class PredictionRequest(BaseModel):
