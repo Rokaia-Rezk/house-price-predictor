@@ -34,62 +34,28 @@ except Exception as e:
     model_pipeline = None
 
 
-@app.get("/", response_class=HTMLResponse, tags=["Frontend"])
-def read_root():
-    """Serves the frontend HTML index page"""
-    html_path = os.path.join(current_dir, "..", "frontend", "index.html")
-    if not os.path.exists(html_path):
-        html_path = os.path.join(current_dir, "frontend", "index.html")
-        
-    if os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>House Price Predictor API is Running!</h1>"
-
-
-@app.get("/health", tags=["Health"])
-def health_check():
-    return {"status": "healthy", "model_loaded": model_pipeline is not None}
-
-
-@app.post("/predict", tags=["Prediction"])
-def predict_price(payload: dict):
-    if model_pipeline is None:
-        raise HTTPException(status_code=500, detail="Model is not loaded properly.")
-    
+@app.post("/predict")
+def predict(data: dict):
     try:
-        import pandas as pd
-        
-        # Smart Dynamic Field Mapping for Frontend & Backend compatibility
-        bhk_val = payload.get("BHK") or payload.get("bhk") or payload.get("bedrooms") or 0
-        size_val = payload.get("size_sqft") or payload.get("carpet_area_sqft") or payload.get("carpet_area") or 0
-        bath_val = payload.get("bathroom") or payload.get("bathrooms") or 0
-        balcony_val = payload.get("balcony") or payload.get("balconies") or 0
-        floor_val = payload.get("floor_num") or payload.get("floor") or 0
-        total_floors_val = payload.get("total_floors") or 0
-        
-        data = {
-            "BHK": float(bhk_val),
-            "size_sqft": float(size_val),
-            "bathroom": float(bath_val),
-            "balcony": float(balcony_val),
-            "floor_num": float(floor_val),
-            "total_floors": float(total_floors_val),
-            "location_grouped": str(payload.get("location_grouped") or payload.get("location") or "Other"),
-            "Furnishing": str(payload.get("Furnishing") or payload.get("furnishing") or "Unfurnished"),
-            "facing": str(payload.get("facing") or "North"),
-            "Transaction": str(payload.get("Transaction") or payload.get("transaction") or "Resale"),
-            "Ownership": str(payload.get("Ownership") or payload.get("ownership") or "Freehold")
-        }
+        # 1. التحرّك في حالة عدم وجود الموديل
+        if model_pipeline is None:
+            return {"error": "Model file was not loaded correctly on server startup."}, 500
 
-        input_data = pd.DataFrame([data])
+        # 2. طباعة البيانات للـ Logs عشان نشوف الـ Frontend باعت إيه
+        print("Received payload:", data)
+
+        # 3. تحويل الـ JSON لـ DataFrame
+        input_df = pd.DataFrame([data])
+
+        # 4. التوقع
+        prediction_log = model_pipeline.predict(input_df)
         
-        log_price = model_pipeline.predict(input_data)[0]
-        predicted_price = float(np.expm1(log_price))
-        
-        return {
-            "predicted_price": round(predicted_price, 2),
-            "currency": "INR"
-        }
+        # لو عاملة log transform للسعر (أو عدليها حسب الكود عندك)
+        prediction = float(np.exp(prediction_log[0]))
+
+        return {"prediction": prediction}
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
+        # هيرجع الخطأ التفصيلي في الـ Response بدل ما يضرب 500 صامت!
+        print(f"Prediction Error: {str(e)}")
+        return {"error": str(e)}, 400
