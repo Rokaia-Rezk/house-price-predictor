@@ -54,25 +54,29 @@ def health_check():
     return {"status": "healthy", "model_loaded": model_pipeline is not None}
 
 @app.post("/predict", tags=["Prediction"])
-def predict_price(request: PredictionRequest):
+def predict_price(payload: dict):
     if model_pipeline is None:
         raise HTTPException(status_code=500, detail="Model is not loaded properly.")
     
     try:
         import pandas as pd
-        input_data = pd.DataFrame([{
-            "BHK": request.BHK,
-            "size_sqft": request.size_sqft,
-            "bathroom": request.bathroom,
-            "balcony": request.balcony,
-            "floor_num": request.floor_num,
-            "total_floors": request.total_floors,
-            "location_grouped": request.location_grouped,
-            "Furnishing": request.Furnishing,
-            "facing": request.facing,
-            "Transaction": request.Transaction,
-            "Ownership": request.Ownership
-        }])
+        
+        # Mapping input data flexibly
+        data = {
+            "BHK": float(payload.get("BHK") or payload.get("bhk") or 0),
+            "size_sqft": float(payload.get("size_sqft") or payload.get("carpet_area") or 0),
+            "bathroom": float(payload.get("bathroom") or payload.get("bathrooms") or 0),
+            "balcony": float(payload.get("balcony") or payload.get("balconies") or 0),
+            "floor_num": float(payload.get("floor_num") or payload.get("floor") or 0),
+            "total_floors": float(payload.get("total_floors") or 0),
+            "location_grouped": str(payload.get("location_grouped") or payload.get("location") or "Other"),
+            "Furnishing": str(payload.get("Furnishing") or payload.get("furnishing") or "Unfurnished"),
+            "facing": str(payload.get("facing") or "North"),
+            "Transaction": str(payload.get("Transaction") or payload.get("transaction") or "Resale"),
+            "Ownership": str(payload.get("Ownership") or payload.get("ownership") or "Freehold")
+        }
+
+        input_data = pd.DataFrame([data])
         
         log_price = model_pipeline.predict(input_data)[0]
         predicted_price = float(np.expm1(log_price))
@@ -83,13 +87,3 @@ def predict_price(request: PredictionRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
-
-@app.get("/", response_class=HTMLResponse)
-def read_root():
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    html_path = os.path.join(current_dir, "..", "frontend", "index.html")
-    
-    if os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>House Price Predictor API is Running!</h1><p>Go to <a href='/docs'>/docs</a> for API Documentation.</p>"
