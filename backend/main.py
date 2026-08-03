@@ -1,7 +1,6 @@
 import json
 import os
 import traceback
-import urllib.request
 import joblib
 import numpy as np
 import pandas as pd
@@ -21,21 +20,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load Trained Pipeline Model safely with Google Drive Auto-Download
+# Load Trained Pipeline Model from Backend Directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "house_price.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
-GOOGLE_DRIVE_FILE_ID = "1C-7Qx7fRqw6N_54v67r3EK_UHY78TYz0"
-download_url = "https://huggingface.co/Rokaa2006/house-price-model/resolve/main/house_price.pkl"
 try:
-    if not os.path.exists(model_path):
-        print("Downloading model file from Google Drive...")
-        urllib.request.urlretrieve(download_url, model_path)
-        print("Model downloaded successfully!")
-
-    model_pipeline = joblib.load(model_path)
-    print("Model loaded into memory successfully!")
+    if os.path.exists(model_path):
+        model_pipeline = joblib.load(model_path)
+        print("Model loaded into memory successfully from local backend folder!")
+    else:
+        print(f"ERROR: Model file not found at {model_path}")
+        model_pipeline = None
 except Exception as e:
     print("LOAD ERROR:", traceback.format_exc())
     model_pipeline = None
