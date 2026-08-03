@@ -28,11 +28,13 @@ model_path = os.path.join(BASE_DIR, "house_price.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
 model_pipeline = None
+import joblib
+import traceback
+
 try:
     model_pipeline = joblib.load(model_path)
-    print("Model loaded successfully!")
 except Exception as e:
-    print(f"Error loading model: {e}")
+    print("LOAD ERROR:", traceback.format_exc())
     model_pipeline = None
 
 # Frontend HTML Route
