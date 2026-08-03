@@ -83,3 +83,14 @@ def predict_price(request: PredictionRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction error: {str(e)}")
+    
+    from fastapi.responses import HTMLResponse
+import os
+
+@app.get("/", response_class=HTMLResponse)
+def read_root():
+    html_path = os.path.join(os.path.dirname(__file__), "../frontend/index.html")
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>House Price Predictor API is Running!</h1><p>Go to <a href='/docs'>/docs</a> for API Swagger UI.</p>"
