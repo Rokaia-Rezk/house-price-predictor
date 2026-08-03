@@ -27,8 +27,7 @@ model_path = os.path.join(BASE_DIR, "house_price.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
 GOOGLE_DRIVE_FILE_ID = "1C-7Qx7fRqw6N_54v67r3EK_UHY78TYz0"
-download_url = f"https://drive.google.com/uc?export=download&id={GOOGLE_DRIVE_FILE_ID}"
-
+download_url = "https://huggingface.co/Rokaa2006/house-price-model/resolve/main/house_price.pkl"
 try:
     if not os.path.exists(model_path):
         print("Downloading model file from Google Drive...")
