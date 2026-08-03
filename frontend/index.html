@@ -6,185 +6,61 @@
     <title>House Price Predictor</title>
     <style>
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
         body { 
             background: url('bg.jpg') no-repeat center center fixed;
             background-size: cover;
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 20px; 
-            position: relative;
-            overflow-x: hidden;
+            display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; margin: 0; padding: 20px; position: relative; overflow-x: hidden;
         }
-
-        /* Subtle Lavender Floral Overlays */
         .floral-top-left {
-            position: fixed;
-            top: -30px;
-            left: -30px;
-            width: 320px;
-            height: 320px;
+            position: fixed; top: -30px; left: -30px; width: 320px; height: 320px;
             background: radial-gradient(circle, rgba(192, 132, 252, 0.35) 0%, rgba(255,255,255,0) 70%);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 1;
-            filter: blur(20px);
+            border-radius: 50%; pointer-events: none; z-index: 1; filter: blur(20px);
         }
-
         .floral-bottom-right {
-            position: fixed;
-            bottom: -40px;
-            right: -40px;
-            width: 380px;
-            height: 380px;
+            position: fixed; bottom: -40px; right: -40px; width: 380px; height: 380px;
             background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, rgba(255,255,255,0) 75%);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 1;
-            filter: blur(25px);
+            border-radius: 50%; pointer-events: none; z-index: 1; filter: blur(25px);
         }
-
-        /* Floral Pattern Watermark Background Overlay */
         .floral-pattern-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                radial-gradient(rgba(147, 51, 234, 0.12) 1.5px, transparent 1.5px),
-                radial-gradient(rgba(192, 132, 252, 0.15) 1.5px, transparent 1.5px);
-            background-size: 60px 60px;
-            background-position: 0 0, 30px 30px;
-            pointer-events: none;
-            z-index: 1;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(147, 51, 234, 0.12) 1.5px, transparent 1.5px), radial-gradient(rgba(192, 132, 252, 0.15) 1.5px, transparent 1.5px);
+            background-size: 60px 60px; background-position: 0 0, 30px 30px; pointer-events: none; z-index: 1;
         }
-
-        /* Header Bar Name - Soft Lavender Glass */
         .header-name {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            background: rgba(238, 230, 249, 0.7);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            padding: 10px 22px;
-            border-radius: 20px;
-            color: #4c1d95;
-            font-weight: bold;
-            font-size: 1rem;
-            box-shadow: 0 4px 20px rgba(107, 33, 168, 0.15);
-            border: 1px solid rgba(216, 180, 254, 0.7);
-            z-index: 10;
+            position: absolute; top: 20px; right: 30px;
+            background: rgba(238, 230, 249, 0.7); backdrop-filter: blur(14px);
+            padding: 10px 22px; border-radius: 20px; color: #4c1d95; font-weight: bold; font-size: 1rem;
+            box-shadow: 0 4px 20px rgba(107, 33, 168, 0.15); border: 1px solid rgba(216, 180, 254, 0.7); z-index: 10;
         }
-
-        /* Main Container - Soft Lavender Glassmorphism */
         .container { 
-            background: rgba(245, 240, 253, 0.72); 
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            padding: 30px; 
-            border-radius: 22px; 
-            box-shadow: 0 10px 40px rgba(91, 33, 182, 0.22); 
-            width: 100%; 
-            max-width: 600px; 
-            border: 1.5px solid rgba(224, 204, 250, 0.85);
-            z-index: 2;
+            background: rgba(245, 240, 253, 0.72); backdrop-filter: blur(18px);
+            padding: 30px; border-radius: 22px; box-shadow: 0 10px 40px rgba(91, 33, 182, 0.22); 
+            width: 100%; max-width: 600px; border: 1.5px solid rgba(224, 204, 250, 0.85); z-index: 2;
         }
-
-        h2 { color: #581c87; text-align: center; margin-bottom: 25px; font-size: 1.6rem; text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8); }
+        h2 { color: #581c87; text-align: center; margin-bottom: 25px; font-size: 1.6rem; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .form-group { display: flex; flex-direction: column; }
         label { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #3b0764; }
-        
         input, select { 
-            padding: 10px; 
-            border: 1px solid rgba(192, 132, 252, 0.65); 
-            border-radius: 10px; 
-            font-size: 0.95rem; 
-            background: rgba(255, 255, 255, 0.8);
-            color: #3b0764;
-            font-weight: 600;
-            outline: none;
-            transition: 0.2s;
+            padding: 10px; border: 1px solid rgba(192, 132, 252, 0.65); border-radius: 10px; 
+            font-size: 0.95rem; background: rgba(255, 255, 255, 0.8); color: #3b0764; font-weight: 600; outline: none;
         }
-
-        input:focus, select:focus {
-            border-color: #8b5cf6;
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
-        }
-
         button { 
-            grid-column: span 2; 
-            padding: 13px; 
-            background: linear-gradient(135deg, #7c3aed, #9333ea); 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            font-size: 1.05rem; 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.3s; 
-            margin-top: 15px; 
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.35);
+            grid-column: span 2; padding: 13px; background: linear-gradient(135deg, #7c3aed, #9333ea); 
+            color: white; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: bold; cursor: pointer; margin-top: 15px; 
         }
-
-        button:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
-            background: linear-gradient(135deg, #6d28d9, #7e22ce);
-        }
-
+        button:hover { background: linear-gradient(135deg, #6d28d9, #7e22ce); }
         .result { 
-            margin-top: 20px; 
-            padding: 16px; 
-            background: rgba(237, 223, 255, 0.9); 
-            border: 1px solid rgba(192, 132, 252, 0.95); 
-            border-radius: 12px; 
-            text-align: center; 
-            color: #4c1d95; 
-            font-weight: bold; 
-            font-size: 1.25rem; 
-            box-shadow: 0 4px 14px rgba(107, 33, 168, 0.15);
-        }
-
-        /* Falling Purple Petals Animation */
-        .petal {
-            position: fixed;
-            background: #c084fc;
-            border-radius: 150% 0 150% 0;
-            opacity: 0.75;
-            pointer-events: none;
-            z-index: 1;
-            animation: fall linear infinite;
-        }
-
-        @keyframes fall {
-            0% {
-                top: -10%;
-                transform: translateX(0) rotate(0deg);
-                opacity: 0.85;
-            }
-            100% {
-                top: 100%;
-                transform: translateX(120px) rotate(360deg);
-                opacity: 0.15;
-            }
+            margin-top: 20px; padding: 16px; background: rgba(237, 223, 255, 0.9); 
+            border: 1px solid rgba(192, 132, 252, 0.95); border-radius: 12px; text-align: center; color: #4c1d95; font-weight: bold; font-size: 1.25rem; 
         }
     </style>
 </head>
 <body>
-
-    <!-- Floral Aesthetic Glows & Patterns -->
     <div class="floral-top-left"></div>
     <div class="floral-bottom-right"></div>
     <div class="floral-pattern-bg"></div>
-
-    <!-- Developer Name Header -->
     <div class="header-name">✨ Developed by Rokaia Hassan</div>
 
     <div class="container">
@@ -259,26 +135,27 @@
     </div>
 
     <script>
-        // Create Falling Purple Petals
-        function createPetal() {
-            const petal = document.createElement('div');
-            petal.classList.add('petal');
-            
-            const size = Math.random() * 12 + 8 + 'px';
-            petal.style.width = size;
-            petal.style.height = size;
-            petal.style.left = Math.random() * window.innerWidth + 'px';
-            petal.style.animationDuration = Math.random() * 3 + 4 + 's';
-            
-            document.body.appendChild(petal);
-            
-            setTimeout(() => {
-                petal.remove();
-            }, 7000);
+        // تحميل المدن تلقائياً من ملف locations.json
+        async function loadLocations() {
+            try {
+                const response = await fetch('/locations.json'); // أو المسار المباشر لو محتاجة
+                if (!response.ok) return;
+                const locations = await response.json();
+                const select = document.getElementById('location_grouped');
+                select.innerHTML = '<option value="Other">Other</option>';
+                locations.forEach(loc => {
+                    const opt = document.createElement('option');
+                    opt.value = loc;
+                    opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.log("Could not load locations.json, using default.");
+            }
         }
-        setInterval(createPetal, 350);
+        loadLocations();
 
-        // API Prediction Script
+        // إرسال البيانات للباك اند والتوقع
         document.getElementById('predictForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const resultBox = document.getElementById('resultBox');
@@ -305,11 +182,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await response.json();
+                const resData = await response.json();
                 if (response.ok) {
-                    resultBox.innerText = `Predicted Price: ₹ ${data.predicted_price.toLocaleString('en-IN')}`;
+                    resultBox.innerText = `Predicted Price: ₹ ${resData.prediction.toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
                 } else {
-                    resultBox.innerText = 'Error making prediction!';
+                    resultBox.innerText = `Error: ${resData.detail || 'Making prediction failed'}`;
                 }
             } catch (err) {
                 resultBox.innerText = 'Server Error! Make sure FastAPI is running.';
