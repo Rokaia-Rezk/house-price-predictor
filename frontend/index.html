@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>House Price Predictor</title>
-    <!-- استدعاء خط أنيق ومميز للاسم -->
+    <!-- Import Google Fonts for elegant typography -->
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; font-family: 'Poppins', 'Segoe UI', Tahoma, sans-serif; }
@@ -16,7 +16,7 @@
             min-height: 100vh; margin: 0; padding: 20px; position: relative; overflow-x: hidden;
         }
 
-        /* تصميم أوراق البنفسج المتساقطة */
+        /* Falling violet petals aesthetic animation */
         .petal {
             position: fixed;
             top: -10vh;
@@ -59,7 +59,7 @@
             background-size: 60px 60px; background-position: 0 0, 30px 30px; pointer-events: none; z-index: 1;
         }
         
-        /* تنسيق اسم المهندسة بخط فخم وفوق خالص */
+        /* Professional header badge for engineer's name */
         .header-name {
             position: absolute; top: 20px; right: 30px;
             background: rgba(238, 230, 249, 0.85); backdrop-filter: blur(14px);
@@ -100,12 +100,12 @@
     </style>
 </head>
 <body>
-    <!-- عناصر الخلفية الجمالية -->
+    <!-- Aesthetic Background Elements -->
     <div class="floral-top-left"></div>
     <div class="floral-bottom-right"></div>
     <div class="floral-pattern-bg"></div>
 
-    <!-- اسم المهندسة المميز -->
+    <!-- Featured Engineer Badge -->
     <div class="header-name">✨ ENG. <span>Rokaia Rezk</span></div>
 
     <div class="container">
@@ -180,12 +180,16 @@
     </div>
 
     <script>
-        // تحديد الرابط تلقائياً (سواء محلياً أو عبر رابط ngrok الخارجي)
-        const API_BASE = window.location.hostname.includes('ngrok') || window.location.hostname.includes('loca.lt') 
-            ? window.location.origin 
-            : 'http://127.0.0.1:8000';
+        /**
+         * Automatically determine API base URL depending on local or cloud environment (Vercel)
+         */
+        const API_BASE = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
+            ? 'http://127.0.0.1:8000' 
+            : window.location.origin;
 
-        // توليد أوراق البنفسج المتساقطة ديناميكياً
+        /**
+         * Dynamically generate falling violet petals effect
+         */
         function createPetals() {
             const petalsCount = 18;
             for (let i = 0; i < petalsCount; i++) {
@@ -204,7 +208,9 @@
         }
         createPetals();
 
-        // تحميل المدن من مسار الباك إند ديناميكياً
+        /**
+         * Fetch available locations dynamically from the backend endpoint
+         */
         async function loadLocations() {
             try {
                 const response = await fetch(`${API_BASE}/locations.json`);
@@ -219,12 +225,14 @@
                     select.appendChild(opt);
                 });
             } catch (e) {
-                console.log("Error loading locations");
+                console.error("Error loading locations:", e);
             }
         }
         loadLocations();
 
-        // إرسال البيانات للباك اند والتوقع
+        /**
+         * Handle form submission, payload construction, and API prediction call
+         */
         document.getElementById('predictForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const resultBox = document.getElementById('resultBox');
