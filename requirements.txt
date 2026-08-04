@@ -1,5 +1,6 @@
-streamlit
+fastapi
+uvicorn
+joblib==1.4.2
+scikit-learn==1.4.2
 pandas
 numpy
-scikit-learn==1.4.2
-joblib==1.4.2
