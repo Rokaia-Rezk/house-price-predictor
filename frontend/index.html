@@ -4,16 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>House Price Predictor</title>
+    <!-- استدعاء خط أنيق ومميز للاسم -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    
-body {
-    background: linear-gradient(135deg, #f3eef9 0%, #e2d4f2 50%, #f6f3fc 100%);
-    background-size: cover;
-    display: flex; justify-content: center; align-items: center;
-    min-height: 100vh; margin: 0; padding: 20px; position: relative; overflow-x: hidden;
-}
+        * { box-sizing: border-box; font-family: 'Poppins', 'Segoe UI', Tahoma, sans-serif; }
+        
+        body {
+            background: linear-gradient(135deg, #f3eef9 0%, #e2d4f2 50%, #f6f3fc 100%);
+            background-size: cover;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px; position: relative; overflow-x: hidden;
+        }
 
+        /* تصميم أوراق البنفسج المتساقطة */
+        .petal {
+            position: fixed;
+            top: -10vh;
+            background: linear-gradient(135deg, #d8b4fe, #a855f7);
+            border-radius: 150% 0 150% 0;
+            animation: fall linear infinite;
+            z-index: 1;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-10vh) translateX(0) rotate(0deg);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translateY(50vh) translateX(50px) rotate(180deg);
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateY(110vh) translateX(-50px) rotate(360deg);
+                opacity: 0;
+            }
+        }
 
         .floral-top-left {
             position: fixed; top: -30px; left: -30px; width: 320px; height: 320px;
@@ -30,14 +58,24 @@ body {
             background-image: radial-gradient(rgba(147, 51, 234, 0.12) 1.5px, transparent 1.5px), radial-gradient(rgba(192, 132, 252, 0.15) 1.5px, transparent 1.5px);
             background-size: 60px 60px; background-position: 0 0, 30px 30px; pointer-events: none; z-index: 1;
         }
+        
+        /* تنسيق اسم المهندسة بخط فخم وفوق خالص */
         .header-name {
             position: absolute; top: 20px; right: 30px;
-            background: rgba(238, 230, 249, 0.7); backdrop-filter: blur(14px);
-            padding: 10px 22px; border-radius: 20px; color: #4c1d95; font-weight: bold; font-size: 1rem;
-            box-shadow: 0 4px 20px rgba(107, 33, 168, 0.15); border: 1px solid rgba(216, 180, 254, 0.7); z-index: 10;
+            background: rgba(238, 230, 249, 0.85); backdrop-filter: blur(14px);
+            padding: 8px 20px; border-radius: 20px; color: #581c87; font-weight: bold; font-size: 1.1rem;
+            box-shadow: 0 4px 20px rgba(107, 33, 168, 0.2); border: 1px solid rgba(216, 180, 254, 0.8); z-index: 10;
+            letter-spacing: 0.5px;
         }
+        .header-name span {
+            font-family: 'Dancing Script', cursive;
+            font-size: 1.4rem;
+            color: #7c3aed;
+            margin-left: 5px;
+        }
+
         .container { 
-            background: rgba(245, 240, 253, 0.72); backdrop-filter: blur(18px);
+            background: rgba(245, 240, 253, 0.78); backdrop-filter: blur(18px);
             padding: 30px; border-radius: 22px; box-shadow: 0 10px 40px rgba(91, 33, 182, 0.22); 
             width: 100%; max-width: 600px; border: 1.5px solid rgba(224, 204, 250, 0.85); z-index: 2;
         }
@@ -47,13 +85,14 @@ body {
         label { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #3b0764; }
         input, select { 
             padding: 10px; border: 1px solid rgba(192, 132, 252, 0.65); border-radius: 10px; 
-            font-size: 0.95rem; background: rgba(255, 255, 255, 0.8); color: #3b0764; font-weight: 600; outline: none;
+            font-size: 0.95rem; background: rgba(255, 255, 255, 0.85); color: #3b0764; font-weight: 600; outline: none;
         }
         button { 
             grid-column: span 2; padding: 13px; background: linear-gradient(135deg, #7c3aed, #9333ea); 
             color: white; border: none; border-radius: 10px; font-size: 1.05rem; font-weight: bold; cursor: pointer; margin-top: 15px; 
+            transition: all 0.3s ease;
         }
-        button:hover { background: linear-gradient(135deg, #6d28d9, #7e22ce); }
+        button:hover { background: linear-gradient(135deg, #6d28d9, #7e22ce); transform: translateY(-1px); }
         .result { 
             margin-top: 20px; padding: 16px; background: rgba(237, 223, 255, 0.9); 
             border: 1px solid rgba(192, 132, 252, 0.95); border-radius: 12px; text-align: center; color: #4c1d95; font-weight: bold; font-size: 1.25rem; 
@@ -61,10 +100,13 @@ body {
     </style>
 </head>
 <body>
+    <!-- عناصر الخلفية الجمالية -->
     <div class="floral-top-left"></div>
     <div class="floral-bottom-right"></div>
     <div class="floral-pattern-bg"></div>
-    <div class="header-name">✨ Developed by Rokaia Hassan</div>
+
+    <!-- اسم المهندسة المميز -->
+    <div class="header-name">✨ ENG. <span>Rokaia Rezk</span></div>
 
     <div class="container">
         <h2>🏡 Real Estate Price Predictor</h2>
@@ -138,25 +180,49 @@ body {
     </div>
 
     <script>
-  // تحميل المدن من مسار الباك إند
-async function loadLocations() {
-    try {
-        const response = await fetch('/locations.json');
-        if (!response.ok) return;
-        const locations = await response.json();
-        const select = document.getElementById('location_grouped');
-        select.innerHTML = '<option value="Other">Other</option>';
-        locations.forEach(loc => {
-            const opt = document.createElement('option');
-            opt.value = loc;
-            opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
-            select.appendChild(opt);
-        });
-    } catch (e) {
-        console.log("Error loading locations");
-    }
-}
-loadLocations();
+        // تحديد الرابط تلقائياً (سواء محلياً أو عبر رابط ngrok الخارجي)
+        const API_BASE = window.location.hostname.includes('ngrok') || window.location.hostname.includes('loca.lt') 
+            ? window.location.origin 
+            : 'http://127.0.0.1:8000';
+
+        // توليد أوراق البنفسج المتساقطة ديناميكياً
+        function createPetals() {
+            const petalsCount = 18;
+            for (let i = 0; i < petalsCount; i++) {
+                const petal = document.createElement('div');
+                petal.classList.add('petal');
+                
+                const size = Math.random() * 12 + 8;
+                petal.style.width = `${size}px`;
+                petal.style.height = `${size * 1.5}px`;
+                petal.style.left = `${Math.random() * 100}vw`;
+                petal.style.animationDuration = `${Math.random() * 5 + 4}s`;
+                petal.style.animationDelay = `${Math.random() * 5}s`;
+                
+                document.body.appendChild(petal);
+            }
+        }
+        createPetals();
+
+        // تحميل المدن من مسار الباك إند ديناميكياً
+        async function loadLocations() {
+            try {
+                const response = await fetch(`${API_BASE}/locations.json`);
+                if (!response.ok) return;
+                const locations = await response.json();
+                const select = document.getElementById('location_grouped');
+                select.innerHTML = '<option value="Other">Other</option>';
+                locations.forEach(loc => {
+                    const opt = document.createElement('option');
+                    opt.value = loc;
+                    opt.textContent = loc.charAt(0).toUpperCase() + loc.slice(1);
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.log("Error loading locations");
+            }
+        }
+        loadLocations();
 
         // إرسال البيانات للباك اند والتوقع
         document.getElementById('predictForm').addEventListener('submit', async (e) => {
@@ -180,7 +246,7 @@ loadLocations();
             };
 
             try {
-                const response = await fetch('/predict', {
+                const response = await fetch(`${API_BASE}/predict`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
