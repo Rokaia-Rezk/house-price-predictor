@@ -1,8 +1,8 @@
 import os
-import glob
+import requests
+import joblib
 import json
 import traceback
-import joblib
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
@@ -22,38 +22,44 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# البحث عن الموديل في الأماكن المحتملة بأمان تام من غير كراش
-possible_paths = [
-    os.path.join(BASE_DIR, "house_price.pkl"),
-    os.path.join(BASE_DIR, "house_price (2).pkl"),
-    "house_price.pkl",
-    "/app/house_price.pkl"
-]
-
-model_path = None
-for path in possible_paths:
-    if os.path.exists(path) and os.path.getsize(path) > 1024:
-        model_path = path
-        break
-
+model_path = os.path.join(BASE_DIR, "house_price.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
-if not os.path.exists(json_path):
-    json_path = "locations.json"
+
+# رابط التحميل المباشر من الـ Release اللي رفعناه على GitHub
+GITHUB_MODEL_URL = "https://github.com/Rokaia-Rezk/house-price-predictor/releases/download/v1.0.0/house_price.pkl"
 
 model_pipeline = None
 load_error_msg = ""
 
-if model_path:
+# تحميل الموديل: لو مش موجود محلياً أو مساحته صغيرة، هينزله من الرابط المباشر
+if not os.path.exists(model_path) or os.path.getsize(model_path) < 1024:
+    print("Downloading model from GitHub Releases...")
     try:
+        response = requests.get(GITHUB_MODEL_URL, stream=True)
+        if response.status_code == 200:
+            with open(model_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print("Model downloaded successfully from GitHub!")
+        else:
+            load_error_msg = f"Failed to download. Status: {response.status_code}"
+            print(load_error_msg)
+    except Exception as e:
+        load_error_msg = f"Exception during download: {str(e)}"
+        print(load_error_msg)
+
+# تحميل الموديل في الذاكرة عبر joblib
+try:
+    if os.path.exists(model_path) and os.path.getsize(model_path) > 1024:
         model_pipeline = joblib.load(model_path)
         print(f"SUCCESS: Model loaded into memory from {model_path}")
-    except Exception as e:
-        load_error_msg = f"Joblib load failed: {str(e)}"
-        print(f"LOAD ERROR at {model_path}:", traceback.format_exc())
-else:
-    load_error_msg = "Model file not found or empty on server."
-    print("WARNING:", load_error_msg)
+    else:
+        if not load_error_msg:
+            load_error_msg = "Model file is missing or empty after download attempt."
+        print("ERROR:", load_error_msg)
+except Exception as e:
+    load_error_msg = f"Joblib load failed: {str(e)}"
+    print("LOAD ERROR:", traceback.format_exc())
 
 
 # Frontend HTML Route
