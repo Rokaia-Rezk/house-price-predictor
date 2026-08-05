@@ -20,7 +20,8 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "house_price.pkl")
+# تعديل اسم الملف هنا ليبحث عن الاسم الموجود عندك بالضبط
+model_path = os.path.join(BASE_DIR, "house_pricee.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
 model_pipeline = None
@@ -80,6 +81,14 @@ async def predict(request: Request):
         if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
             data = data["data"]
 
-        return {"prediction": 150000.0}
+        # تحويل البيانات القادمة إلى DataFrame عشان تدخل مظبوطة للـ Pipeline الحقيقي
+        df_input = pd.DataFrame([data])
+        
+        # التنبؤ بالقيم باستخدام الموديل الحقيقي (Random Forest Pipeline)
+        pred_log = model_pipeline.predict(df_input)
+        pred_price = np.expm1(pred_log)[0]
+
+        return {"prediction": float(pred_price)}
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
