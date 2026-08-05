@@ -1,5 +1,4 @@
 import os
-import requests
 import joblib
 import json
 import traceback
@@ -12,7 +11,6 @@ from fastapi.responses import HTMLResponse
 # Initialize FastAPI app
 app = FastAPI(title="House Price Prediction API", version="1.0.0")
 
-# Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,57 +23,33 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "house_price.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
-# رابط التحميل المباشر من الـ Release اللي رفعناه على GitHub
-GITHUB_MODEL_URL = "https://github.com/Rokaia-Rezk/house-price-predictor/releases/download/v1.0.0/house_price.pkl"
-
 model_pipeline = None
 load_error_msg = ""
 
-# تحميل الموديل: لو مش موجود محلياً أو مساحته صغيرة، هينزله من الرابط المباشر
-if not os.path.exists(model_path) or os.path.getsize(model_path) < 1024:
-    print("Downloading model from GitHub Releases...")
-    try:
-        response = requests.get(GITHUB_MODEL_URL, stream=True)
-        if response.status_code == 200:
-            with open(model_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            print("Model downloaded successfully from GitHub!")
-        else:
-            load_error_msg = f"Failed to download. Status: {response.status_code}"
-            print(load_error_msg)
-    except Exception as e:
-        load_error_msg = f"Exception during download: {str(e)}"
-        print(load_error_msg)
-
-# تحميل الموديل في الذاكرة عبر joblib
+# محاولة تحميل الموديل بحذر شديد من غير كراش للسيرفر
 try:
     if os.path.exists(model_path) and os.path.getsize(model_path) > 1024:
         model_pipeline = joblib.load(model_path)
-        print(f"SUCCESS: Model loaded into memory from {model_path}")
+        print(f"SUCCESS: Model loaded from {model_path}")
     else:
-        if not load_error_msg:
-            load_error_msg = "Model file is missing or empty after download attempt."
-        print("ERROR:", load_error_msg)
+        load_error_msg = "Model file not found locally on server."
+        print("WARNING:", load_error_msg)
 except Exception as e:
     load_error_msg = f"Joblib load failed: {str(e)}"
     print("LOAD ERROR:", traceback.format_exc())
 
 
-# Frontend HTML Route
 @app.get("/", response_class=HTMLResponse, tags=["Frontend"])
 def read_root():
     html_path = os.path.join(BASE_DIR, "index.html")
     if not os.path.exists(html_path):
         html_path = os.path.join(BASE_DIR, "..", "frontend", "index.html")
-
     if os.path.exists(html_path):
         with open(html_path, "r", encoding="utf-8") as f:
             return f.read()
     return "<h1>House Price Predictor API is Running!</h1>"
 
 
-# Locations API Route
 @app.get("/locations.json")
 def get_locations():
     if os.path.exists(json_path):
@@ -84,7 +58,6 @@ def get_locations():
     return ["Other"]
 
 
-# Health Check Route
 @app.get("/health", tags=["Health"])
 def health_check():
     return {
@@ -95,7 +68,6 @@ def health_check():
     }
 
 
-# Prediction Route
 @app.post("/predict")
 async def predict(request: Request):
     try:
@@ -116,7 +88,6 @@ async def predict(request: Request):
             data = data["data"]
 
         input_df = pd.DataFrame([data])
-        
         prediction_log = model_pipeline.predict(input_df)
         prediction = float(np.expm1(prediction_log[0]))
 
