@@ -80,7 +80,13 @@
             width: 100%; max-width: 600px; border: 1.5px solid rgba(224, 204, 250, 0.85); z-index: 2;
         }
         h2 { color: #581c87; text-align: center; margin-bottom: 25px; font-size: 1.6rem; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+        }
+        
         .form-group { display: flex; flex-direction: column; }
         label { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; color: #3b0764; }
         input, select { 
@@ -96,6 +102,40 @@
         .result { 
             margin-top: 20px; padding: 16px; background: rgba(237, 223, 255, 0.9); 
             border: 1px solid rgba(192, 132, 252, 0.95); border-radius: 12px; text-align: center; color: #4c1d95; font-weight: bold; font-size: 1.25rem; 
+        }
+
+        /* Responsive Design Adjustments for Mobile Screens */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                align-items: flex-start;
+            }
+            .header-name {
+                position: relative;
+                top: 0;
+                right: 0;
+                margin-bottom: 15px;
+                text-align: center;
+                display: inline-block;
+            }
+            body {
+                flex-direction: column;
+                justify-content: flex-start;
+            }
+            .container {
+                padding: 15px;
+                max-width: 100%;
+            }
+            .grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+            button {
+                grid-column: span 1 !important;
+            }
+            .form-group[style*="grid-column: span 2;"] {
+                grid-column: span 1 !important;
+            }
         }
     </style>
 </head>
