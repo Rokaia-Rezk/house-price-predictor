@@ -54,7 +54,7 @@ def read_root():
 @app.get("/locations.json")
 def get_locations():
     if os.path.exists(json_path):
-        with open(json_path, "r", encoding="utf-85") as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             return json.load(f)
     return ["Other"]
 
