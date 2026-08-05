@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import traceback
@@ -20,15 +21,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load Trained Pipeline Model from Backend Directory
+# Load Trained Pipeline Model from Backend Directory dynamically
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "house_price.pkl")
+model_files = glob.glob(os.path.join(BASE_DIR, "house_price*.pkl"))
+model_path = model_files[0] if model_files else os.path.join(BASE_DIR, "house_price.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
 try:
     if os.path.exists(model_path):
         model_pipeline = joblib.load(model_path)
-        print("Model loaded into memory successfully from local backend folder!")
+        print(f"Model loaded into memory successfully from: {model_path}")
     else:
         print(f"ERROR: Model file not found at {model_path}")
         model_pipeline = None
