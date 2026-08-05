@@ -180,12 +180,10 @@
     </div>
 
     <script>
-        /**
-         * Automatically determine API base URL depending on local or cloud environment (Vercel)
-         */
+        // Set Railway Backend URL directly
         const API_BASE = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost'
             ? 'http://127.0.0.1:8000' 
-            : window.location.origin;
+            : 'https://alluring-wisdom-production-6322.up.railway.app';
 
         /**
          * Dynamically generate falling violet petals effect
