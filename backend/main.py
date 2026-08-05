@@ -41,9 +41,9 @@ except Exception as e:
 @app.get("/", response_class=HTMLResponse, tags=["Frontend"])
 def read_root():
     """Serves the frontend HTML index page"""
-    html_path = os.path.join(BASE_DIR, "..", "frontend", "index.html")
+    html_path = os.path.join(BASE_DIR, "index.html")
     if not os.path.exists(html_path):
-        html_path = os.path.join(BASE_DIR, "frontend", "index.html")
+        html_path = os.path.join(BASE_DIR, "..", "frontend", "index.html")
 
     if os.path.exists(html_path):
         with open(html_path, "r", encoding="utf-8") as f:
