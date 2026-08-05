@@ -104,37 +104,61 @@
             border: 1px solid rgba(192, 132, 252, 0.95); border-radius: 12px; text-align: center; color: #4c1d95; font-weight: bold; font-size: 1.25rem; 
         }
 
-        /* Responsive Design Adjustments for Mobile Screens */
+        /* Responsive Design Adjustments - Compact Desktop View on Mobile */
         @media (max-width: 768px) {
             body {
                 padding: 10px;
                 align-items: flex-start;
+                justify-content: center;
             }
             .header-name {
                 position: relative;
                 top: 0;
                 right: 0;
-                margin-bottom: 15px;
+                margin-bottom: 12px;
                 text-align: center;
                 display: inline-block;
+                font-size: 0.95rem;
+                padding: 5px 12px;
             }
             body {
                 flex-direction: column;
-                justify-content: flex-start;
             }
             .container {
                 padding: 15px;
                 max-width: 100%;
+                border-radius: 16px;
+            }
+            h2 {
+                font-size: 1.25rem;
+                margin-bottom: 15px;
             }
             .grid {
-                grid-template-columns: 1fr !important;
-                gap: 12px;
-            }
-            button {
-                grid-column: span 1 !important;
+                grid-template-columns: 1fr 1fr !important; /* الاحتفاظ بالتقسيم العمودين جنب بعض زي اللاب توب */
+                gap: 8px !important;
             }
             .form-group[style*="grid-column: span 2;"] {
-                grid-column: span 1 !important;
+                grid-column: span 2 !important; /* Ownership تفضل ممتدة بالعرض زي اللاب توب */
+            }
+            button {
+                grid-column: span 2 !important;
+                padding: 10px;
+                font-size: 0.95rem;
+                margin-top: 10px;
+            }
+            input, select {
+                padding: 7px 10px;
+                font-size: 0.85rem;
+                border-radius: 8px;
+            }
+            label {
+                font-size: 0.75rem;
+                margin-bottom: 3px;
+            }
+            .result {
+                padding: 10px;
+                font-size: 1rem;
+                margin-top: 12px;
             }
         }
     </style>
@@ -280,7 +304,7 @@
             const payload = {
                 carpet_area_sqft: parseFloat(document.getElementById('carpet_area_sqft').value),
                 bedrooms: parseInt(document.getElementById('bedrooms').value),
-                bathroom: parseInt(document.getElementById('bathroom').value),
+                bathroom: parseInt(document.getElementById('bathroom.value') || document.getElementById('bathroom').value),
                 balcony: parseInt(document.getElementById('balcony').value),
                 floor_num: parseInt(document.getElementById('floor_num').value),
                 total_floors: parseInt(document.getElementById('total_floors').value),
