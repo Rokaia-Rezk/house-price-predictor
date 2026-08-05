@@ -1,9 +1,8 @@
 import os
-import requests
-import joblib
 import glob
 import json
 import traceback
+import joblib
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
@@ -22,53 +21,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Determine Absolute Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "house_price.pkl")
-json_path = os.path.join(BASE_DIR, "locations.json")
 
-# رابط التحميل المباشر من جوجل درايف للـ ID بتاعك
-GOOGLE_DRIVE_FILE_ID = "1C-7Qx7fRqw6N_54v67r3EK_UHY78TYz0"
-GOOGLE_DRIVE_DOWNLOAD_URL = f"https://drive.google.com/uc?export=download&id={GOOGLE_DRIVE_FILE_ID}"
+# البحث عن الموديل في الأماكن المحتملة بأمان تام من غير كراش
+possible_paths = [
+    os.path.join(BASE_DIR, "house_price.pkl"),
+    os.path.join(BASE_DIR, "house_price (2).pkl"),
+    "house_price.pkl",
+    "/app/house_price.pkl"
+]
+
+model_path = None
+for path in possible_paths:
+    if os.path.exists(path) and os.path.getsize(path) > 1024:
+        model_path = path
+        break
+
+json_path = os.path.join(BASE_DIR, "locations.json")
+if not os.path.exists(json_path):
+    json_path = "locations.json"
 
 model_pipeline = None
 load_error_msg = ""
 
-# الخطوة الآمنة: تحميل الموديل من جوجل درايف لو مش موجود محلياً أو حجمه صغير
-if not os.path.exists(model_path) or os.path.getsize(model_path) < 1024:
-    print("Downloading model from Google Drive...")
+if model_path:
     try:
-        response = requests.get(GOOGLE_DRIVE_DOWNLOAD_URL, stream=True)
-        if response.status_code == 200:
-            with open(model_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            print("Model downloaded successfully from Google Drive!")
-        else:
-            load_error_msg = f"Failed to download from Drive. Status: {response.status_code}"
-            print(load_error_msg)
-    except Exception as e:
-        load_error_msg = f"Exception during Google Drive download: {str(e)}"
-        print(load_error_msg)
-
-# تحميل الموديل في الذاكرة عبر joblib
-try:
-    if os.path.exists(model_path) and os.path.getsize(model_path) > 1024:
         model_pipeline = joblib.load(model_path)
         print(f"SUCCESS: Model loaded into memory from {model_path}")
-    else:
-        if not load_error_msg:
-            load_error_msg = "Model file is missing or empty after download attempt."
-        print("ERROR:", load_error_msg)
-except Exception as e:
-    load_error_msg = f"Joblib load failed: {str(e)}"
-    print("LOAD ERROR:", traceback.format_exc())
+    except Exception as e:
+        load_error_msg = f"Joblib load failed: {str(e)}"
+        print(f"LOAD ERROR at {model_path}:", traceback.format_exc())
+else:
+    load_error_msg = "Model file not found or empty on server."
+    print("WARNING:", load_error_msg)
 
 
 # Frontend HTML Route
 @app.get("/", response_class=HTMLResponse, tags=["Frontend"])
 def read_root():
-    """Serves the frontend HTML index page"""
     html_path = os.path.join(BASE_DIR, "index.html")
     if not os.path.exists(html_path):
         html_path = os.path.join(BASE_DIR, "..", "frontend", "index.html")
