@@ -19,14 +19,13 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "house_pricee.pkl")
+model_path = os.path.join(BASE_DIR, "model.pkl")
 json_path = os.path.join(BASE_DIR, "locations.json")
 
 model_pipeline = None
 load_error_msg = ""
 
 try:
-    # تحميل الموديل الحقيقي المدرب مباشرة بدون أي بدائل وهمية
     model_pipeline = joblib.load(model_path)
     print("SUCCESS: Model loaded successfully!")
 except Exception as e:
@@ -72,14 +71,10 @@ async def predict(request: Request):
             form_data = await request.form()
             data = dict(form_data)
 
-
         if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
             data = data["data"]
 
-        # تحويل البيانات القادمة إلى DataFrame عشان تدخل مظبوطة للـ Pipeline الحقيقي
         df_input = pd.DataFrame([data])
-        
-        # التنبؤ بالقيم باستخدام الموديل الحقيقي
         pred_log = model_pipeline.predict(df_input)
         pred_price = np.expm1(pred_log)[0]
 
