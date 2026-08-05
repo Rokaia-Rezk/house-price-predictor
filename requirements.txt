@@ -1,7 +1,7 @@
-streamlit
 fastapi
 uvicorn
-joblib==1.4.2
-scikit-learn==1.4.2
-pandas
-numpy
+streamlit
+joblib>=1.4.0
+scikit-learn>=1.4.2
+pandas>=2.0.0
+numpy>=1.26.0
