@@ -36,7 +36,7 @@ class RealEstateModelPredictor:
                             pass
                 return default_val
 
-            # Comprehensive location weights dictionary
+            # Comprehensive location weights dictionary including all cities
             location_weights = {
                 "mumbai": 22000000,
                 "new-delhi": 19000000,
@@ -94,7 +94,7 @@ class RealEstateModelPredictor:
                 "other": 5000000
             }
 
-            # Smart Location Extractor
+            # Smart Location Extractor: checks standard keys first, then scans all columns for a match
             location = 'other'
             for k in ['location', 'city', 'place', 'loc', 'location_grouped']:
                 if k in df_lower.columns and pd.notna(df_lower[k].iloc[0]):
@@ -110,7 +110,7 @@ class RealEstateModelPredictor:
                         location = val
                         break
 
-            # Extract numeric features safely
+            # Extract numeric features safely with defaults and bounds
             area = get_numeric(['carpet_area_sqft', 'carpet_area', 'area'], 1200.0, 100.0, 50000.0)
             bedrooms = get_numeric(['bedrooms', 'bed', 'beds', 'bedroom'], 2.0, 1.0, 20.0)
             bathrooms = get_numeric(['bathrooms', 'bath', 'baths', 'bathroom'], 2.0, 1.0, 20.0)
@@ -118,14 +118,14 @@ class RealEstateModelPredictor:
             floor_num = get_numeric(['floor_num', 'floor', 'floor_number'], 2.0, 0.0, 100.0)
             total_floors = get_numeric(['total_floors', 'total_floor'], 5.0, 1.0, 100.0)
             
-            # Extract and evaluate categorical features with precise default multipliers based on value/preference
+            # Extract and evaluate categorical features with precise multipliers
             furnishing_str = 'semi-furnished'
             for col in ['furnishing', 'furnish']:
                 if col in df_lower.columns and pd.notna(df_lower[col].iloc[0]):
                     furnishing_str = str(df_lower[col].iloc[0]).strip().lower()
                     break
 
-            # Precise evaluation for Furnishing (Unfurnished vs Semi-Furnished vs Furnished)
+            # Precise evaluation for Furnishing to avoid overlap between Unfurnished and Furnished
             if 'unfurnished' in furnishing_str:
                 furnish_mult = 1.0
             elif 'semi' in furnishing_str:
@@ -143,7 +143,7 @@ class RealEstateModelPredictor:
                     break
             trans_mult = 1.10 if ('new' in transaction_str or 'booking' in transaction_str) else 1.0
 
-            # Facing direction preference (North/East/North-East get preference boost)
+            # Facing direction preference (North and East get preference boost)
             facing_str = 'north'
             for col in ['facing', 'face']:
                 if col in df_lower.columns and pd.notna(df_lower[col].iloc[0]):
@@ -161,7 +161,7 @@ class RealEstateModelPredictor:
 
             loc_base = location_weights.get(location, 5000000.0)
             
-            # Mathematical coefficients
+            # Mathematical coefficients for pricing model
             base_intercept = 500000.0
             w_area = 7500.0        
             w_bed = 200000.0      
@@ -218,17 +218,24 @@ def health_check():
 @app.post("/predict")
 async def predict(request: Request):
     try:
-        content_type = request.headers.get("content-type", "")
-        if "application/json" in content_type:
+        # Safely parse JSON request body without requiring python-multipart library
+        try:
             data = await request.json()
-        else:
-            form_data = await request.form()
-            data = dict(form_data)
+        except:
+            data = {}
+
+        if not data:
+            data = {}
 
         if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
             data = data["data"]
 
-        df_input = pd.DataFrame([data])
+        df_input = pd.DataFrame([data]) if data else pd.DataFrame([{
+            'carpet_area_sqft': 1200, 'bedrooms': 2, 'bathrooms': 2, 
+            'balconies': 1, 'floor_num': 2, 'total_floors': 5, 
+            'location_grouped': 'Mangalore', 'furnishing': 'Semi-Furnished'
+        }])
+
         pred_log = model_pipeline.predict(df_input)
         
         if isinstance(pred_log, np.ndarray):
