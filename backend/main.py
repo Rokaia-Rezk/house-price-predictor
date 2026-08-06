@@ -23,15 +23,13 @@ json_path = os.path.join(BASE_DIR, "locations.json")
 model_path = os.path.join(BASE_DIR, "model.pkl")
 
 # Load the real trained model pipeline (100% actual model)
-import traceback
-import os
-import requests
+import joblib
 
+# Load the real trained model pipeline (100% actual model)
 model_path = os.path.join(os.path.dirname(__file__), "model.pkl")
 
 if not os.path.exists(model_path):
   print("Downloading model from Google Drive...")
-  # رابط التحميل المباشر من جوجل درايف
   file_id = "14-QaF4VBtlpAGPP-7fY6rsba3Va_9MQX"
   url = f"https://drive.google.com/uc?export=download&id={file_id}"
 
@@ -41,6 +39,14 @@ if not os.path.exists(model_path):
       if chunk:
         f.write(chunk)
   print("Model downloaded successfully!")
+
+# تحميل الموديل فعلياً في المتغير اللي الـ predict بينادي عليه
+try:
+  model_pipeline = joblib.load(model_path)
+  print("Model pipeline loaded successfully into memory!")
+except Exception as e:
+  print(f"Error loading model: {e}")
+  model_pipeline = None
 
 
 @app.get("/", response_class=HTMLResponse, tags=["Frontend"])
