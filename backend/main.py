@@ -24,14 +24,16 @@ model_path = os.path.join(BASE_DIR, "model.pkl")
 
 # Load the real trained model pipeline (100% actual model)
 import traceback
+import joblib
+import os
 
-# Load the real trained model pipeline with detailed error logging
+model_path = os.path.join(BASE_DIR, "model.pkl")
+
 try:
   model_pipeline = joblib.load(model_path)
   print("Model loaded successfully!")
 except Exception as e:
   print(f"CRITICAL ERROR loading model: {str(e)}")
-  traceback.print_exc()
   model_pipeline = None
 
 
