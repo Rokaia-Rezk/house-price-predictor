@@ -32,9 +32,11 @@ model_path = os.path.join(BASE_DIR, "model.pkl")
 try:
   with open(model_path, "rb") as f:
     model_pipeline = pickle.load(f)
-  print("Model loaded successfully with standard pickle!")
+  print("MODEL LOADED SUCCESSFULLY!")
 except Exception as e:
-  print(f"CRITICAL ERROR loading model: {str(e)}")
+  print("=== CRITICAL ERROR LOADING MODEL ===")
+  traceback.print_exc()
+  print(f"Error message: {str(e)}")
   model_pipeline = None
 
 
