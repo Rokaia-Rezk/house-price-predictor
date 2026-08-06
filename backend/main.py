@@ -29,8 +29,9 @@ try:
   model_pipeline = joblib.load(model_path)
   print('Model loaded successfully!')
 except Exception as e:
-  print('=== CRITICAL ERROR LOADING MODEL ===')
-  traceback.print_exc()  print(f'Error message: {str(e)}')
+  print("=== CRITICAL ERROR LOADING MODEL ===")
+  traceback.print_exc()
+  print(f"Error message: {str(e)}")
   model_pipeline = None
 
 
