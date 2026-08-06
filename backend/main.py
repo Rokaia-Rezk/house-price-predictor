@@ -29,13 +29,23 @@ import joblib
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "model.pkl")
 
-# Load the real trained model pipeline
 if not os.path.exists(model_path):
   print("Downloading model from Google Drive...")
   file_id = "14-QaF4VBtlpAGPP-7fY6rsba3Va_9MQX"
-  url = f"https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t"
+  url = f"https://drive.google.com/uc?export=download&id={file_id}"
 
-  response = requests.get(url, stream=True)
+  session = requests.Session()
+  response = session.get(url, stream=True)
+
+  # Check for large file warning cookie
+  for key, value in response.cookies.items():
+    if key.startswith("download_warning"):
+      params = {"export": "download", "confirm": value, "id": file_id}
+      response = session.get(
+          "https://drive.google.com/uc", params=params, stream=True
+      )
+      break
+
   with open(model_path, "wb") as f:
     for chunk in response.iter_content(chunk_size=32768):
       if chunk:
