@@ -1,8 +1,29 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import os
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS to allow requests from the Vercel frontend
+app = FastAPI(title="House Price Predictor API")
+
+# Enable CORS for frontend connection (Vercel)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Request Body Schema using Pydantic
+class HouseRequest(BaseModel):
+    location: str = "other"
+    carpet_area: float = 1000.0
+    bathrooms: int = 2
+    balconies: int = 1
+    floor_num: float = 1.0
+    furnishing: str = "Semi-Furnished"
+    transaction: str = "Resale"
+    facing: str = "North"
 
 # List of all valid supported locations
 VALID_LOCATIONS = [
@@ -33,68 +54,54 @@ LOCATION_WEIGHTS = {
     "navi-mumbai": 10500000
 }
 
-@app.route('/predict', methods=['POST'])
-def predict_price():
+@app.post("/predict")
+def predict_price(data: HouseRequest):
     try:
-        data = request.json or {}
-        
-        # Extract inputs sent from the frontend UI
-        location = str(data.get('location', 'other')).strip().lower()
-        carpet_area = float(data.get('carpet_area', 1000))
-        bathrooms = int(data.get('bathrooms', 2))
-        balconies = int(data.get('balconies', 1))
-        floor_num = float(data.get('floor_num', 1))
-        furnishing = str(data.get('furnishing', 'Semi-Furnished')).strip()
-        transaction = str(data.get('transaction', 'Resale')).strip()
-        facing = str(data.get('facing', 'North')).strip()
-        
-        # Validate location input against allowed list
+        location = data.location.strip().lower()
         if location not in VALID_LOCATIONS:
-            location = 'other'
+            location = "other"
             
         # Hardcoded mathematical weights derived from regression analysis
         base_price = 1500000
-        loc_weight = LOCATION_WEIGHTS.get(location, 4500000) # Default for other cities
-        area_weight = 7500       # Price per square foot
-        bath_weight = 250000     # Impact per bathroom
-        balcony_weight = 100000  # Impact per balcony
-        floor_weight = 50000     # Impact per floor level
+        loc_weight = LOCATION_WEIGHTS.get(location, 4500000)
+        area_weight = 7500       
+        bath_weight = 250000     
+        balcony_weight = 100000  
+        floor_weight = 50000     
         
-        # Multipliers for categorical features (Furnishing & Transaction)
+        # Multipliers for categorical features
         furnish_multiplier = {
             'Furnished': 1.12,
             'Semi-Furnished': 1.05,
             'Unfurnished': 1.0
-        }.get(furnishing, 1.0)
+        }.get(data.furnishing, 1.0)
         
         trans_multiplier = {
             'New Property': 1.18,
             'Resale': 1.0
-        }.get(transaction, 1.0)
+        }.get(data.transaction, 1.0)
         
-        # Final mathematical equation to compute property price efficiently without external model files
+        # Final mathematical calculation
         raw_price = (
             base_price + 
             loc_weight + 
-            (carpet_area * area_weight) + 
-            (bathrooms * bath_weight) + 
-            (balconies * balcony_weight) +
-            (floor_num * floor_weight)
+            (data.carpet_area * area_weight) + 
+            (data.bathrooms * bath_weight) + 
+            (data.balconies * balcony_weight) +
+            (data.floor_num * floor_weight)
         )
         
         final_price = raw_price * furnish_multiplier * trans_multiplier
         
-        return jsonify({
-            'status': 'success',
-            'predicted_price_rupees': round(final_price, 2),
-            'formatted_price': f"₹ {final_price:,.2f}"
-        })
+        return {
+            "status": "success",
+            "predicted_price_rupees": round(final_price, 2),
+            "formatted_price": f"₹ {final_price:,.2f}"
+        }
         
     except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 400
+        raise HTTPException(status_code=400, detail=str(e))
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+@app.get("/")
+def home():
+    return {"message": "FastAPI House Price Predictor is running successfully!"}

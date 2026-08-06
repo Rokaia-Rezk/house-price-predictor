@@ -5,5 +5,3 @@ joblib==1.5.3
 pandas==2.2.2
 numpy==2.0.2
 requests==2.31.0
-flask
-flask-cors
