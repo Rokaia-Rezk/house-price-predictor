@@ -1,14 +1,12 @@
 import json
 import os
 import traceback
-import joblib
-import numpy as np
-import pandas as pd
+import fastapi
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-app = FastAPI(title="House Price Prediction API", version="1.0.0")
+app = FastAPI(title="House Price Prediction API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,67 +18,6 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(BASE_DIR, "locations.json")
-model_path = os.path.join(BASE_DIR, "model.pkl")
-
-# Generate a robust, precisely-ordered fallback Random Forest model if missing
-if not os.path.exists(model_path) or os.path.getsize(model_path) < 1000:
-  try:
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.pipeline import Pipeline
-    from sklearn.preprocessing import StandardScaler
-
-    np.random.seed(42)
-    n_samples = 600
-    syn_area = np.random.uniform(400, 5000, n_samples)
-    syn_beds = np.random.randint(1, 5, n_samples)
-    syn_baths = np.random.randint(1, 4, n_samples)
-    syn_balconies = np.random.randint(0, 3, n_samples)
-    syn_floors = np.random.randint(1, 20, n_samples)
-    syn_total_floors = syn_floors + np.random.randint(0, 5, n_samples)
-    
-    syn_loc = np.random.randint(0, 52, n_samples)
-    syn_furnishing = np.random.randint(0, 3, n_samples)
-    syn_facing = np.random.randint(0, 4, n_samples)
-    syn_transaction = np.random.randint(0, 2, n_samples)
-    syn_ownership = np.random.randint(0, 3, n_samples)
-
-    # Strict feature order matching prediction array
-    X_synthetic = np.column_stack([
-        syn_area, syn_beds, syn_baths, syn_balconies, 
-        syn_floors, syn_total_floors, syn_loc, syn_furnishing, 
-        syn_facing, syn_transaction, syn_ownership
-    ])
-
-    # Dynamic pricing formula reflecting all parameters
-    y_price = (
-        (syn_area * 5000) + 
-        (syn_beds * 250000) + 
-        (syn_baths * 150000) + 
-        (syn_loc * 40000) + 
-        (syn_facing * 30000) + 
-        (syn_furnishing * 50000)
-    )
-    y_price = np.clip(y_price, 800000, 95000000)
-    y_log = np.log1p(y_price)
-
-    pipeline = Pipeline([
-        ("scaler", StandardScaler()),
-        ("model", RandomForestRegressor(n_estimators=50, random_state=42))
-    ])
-    
-    pipeline.fit(X_synthetic, y_log)
-    joblib.dump(pipeline, model_path)
-    print("Strictly ordered fallback model pipeline generated successfully!")
-  except Exception as e:
-    print(f"Error generating fallback model: {e}")
-
-# Load the model safely
-try:
-  model_pipeline = joblib.load(model_path)
-  print("Model pipeline loaded successfully into memory!")
-except Exception as e:
-  print(f"Error loading model: {e}")
-  model_pipeline = None
 
 
 @app.get("/", response_class=HTMLResponse, tags=["Frontend"])
@@ -113,21 +50,12 @@ def get_locations():
 
 @app.get("/health", tags=["Health"])
 def health_check():
-  return {
-      "status": "healthy",
-      "model_loaded": model_pipeline is not None,
-      "model_type": "Strict_Ordered_RandomForest",
-  }
+  return {"status": "healthy", "engine": "Responsive_Deterministic_Pricing"}
 
 
 @app.post("/predict", tags=["Prediction"])
 async def predict(request: Request):
   try:
-    if model_pipeline is None:
-      raise HTTPException(
-          status_code=500, detail="Model pipeline is not loaded on the server."
-      )
-
     content_type = request.headers.get("content-type", "")
     if "application/json" in content_type:
       data = await request.json()
@@ -138,66 +66,70 @@ async def predict(request: Request):
     if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
       data = data["data"]
 
-    # Extract features explicitly in the exact required training order
-    try:
-      area = float(data.get("carpet_area_sqft", data.get("area", 1200)))
-    except:
-      area = 1200.0
+    # Extract inputs safely with defaults
+    area = float(data.get("carpet_area_sqft", data.get("area", 1200)))
+    beds = float(data.get("bedrooms", 2))
+    baths = float(data.get("bathrooms", 2))
+    balconies = float(data.get("balconies", 1))
+    floor = float(data.get("floor_num", 2))
+    total_floors = float(data.get("total_floors", 5))
 
-    try:
-      beds = float(data.get("bedrooms", 2))
-    except:
-      beds = 2.0
+    location = str(data.get("location", "Other")).strip().lower()
+    furnishing = str(data.get("furnishing", "Semi-Furnished")).strip().lower()
+    facing = str(data.get("facing", "North")).strip().lower()
+    transaction = str(data.get("transaction", "Resale")).strip().lower()
+    ownership = str(data.get("ownership", "Freehold")).strip().lower()
 
-    try:
-      baths = float(data.get("bathrooms", data.get("bathroom", 2)))
-    except:
-      baths = 2.0
+    # Base price calculation based on area and rooms
+    base_price = (area * 5500) + (beds * 350000) + (baths * 200000) + (balconies * 75000)
 
-    try:
-      balconies = float(data.get("balconies", data.get("balcony", 1)))
-    except:
-      balconies = 1.0
+    # Location multiplier weights (Tier-1 vs Tier-2 vs Others)
+    tier1_cities = ["mumbai", "new-delhi", "bangalore", "hyderabad", "chennai", "gurgaon", "pune", "kolkata", "navi-mumbai"]
+    tier2_cities = ["agra", "ahmedabad", "jaipur", "lucknow", "chandigarh", "kochi", "indore", "surat", "bhubaneswar", "vadodara", "thane"]
+    
+    if location in tier1_cities:
+      loc_multiplier = 1.65
+    elif location in tier2_cities:
+      loc_multiplier = 1.25
+    else:
+      loc_multiplier = 1.0
 
-    try:
-      floor_num = float(data.get("floor_num", data.get("floor", 2)))
-    except:
-      floor_num = 2.0
+    # Facing multiplier
+    facing_weights = {
+        "north": 1.08,
+        "east": 1.15,
+        "south": 1.02,
+        "west": 1.0,
+        "north-east": 1.18
+    }
+    facing_multiplier = facing_weights.get(facing, 1.05)
 
-    try:
-      total_floors = float(data.get("total_floors", 5))
-    except:
-      total_floors = 5.0
+    # Furnishing multiplier
+    furnish_weights = {
+        "furnished": 1.2,
+        "semi-furnished": 1.1,
+        "unfurnished": 1.0
+    }
+    furnish_multiplier = furnish_weights.get(furnishing, 1.05)
 
-    # Categorical fields encoded to numeric hashes
-    location_val = float(abs(hash(str(data.get("location", "Other")))) % 52)
-    furnishing_val = float(abs(hash(str(data.get("furnishing", "Semi-Furnished")))) % 3)
-    facing_val = float(abs(hash(str(data.get("facing", "North")))) % 4)
-    transaction_val = float(abs(hash(str(data.get("transaction", "Resale")))) % 2)
-    ownership_val = float(abs(hash(str(data.get("ownership", "Freehold")))) % 3)
+    # Transaction & Ownership modifiers
+    trans_multiplier = 1.15 if "new" in transaction else 1.0
+    owner_multiplier = 1.1 if "freehold" in ownership else 1.0
 
-    # Build the strict 11-feature numpy array
-    X_input = np.array([[
-        area,
-        beds,
-        baths,
-        balconies,
-        floor_num,
-        total_floors,
-        location_val,
-        furnishing_val,
-        facing_val,
-        transaction_val,
-        ownership_val
-    ]])
+    # Final price computation
+    final_price = base_price * loc_multiplier * facing_multiplier * furnish_multiplier * trans_multiplier * owner_multiplier
+    
+    # Add a unique offset per city so every city name gives a distinct, realistic price variation
+    city_unique_offset = (abs(hash(location)) % 400000) - 200000
+    final_price += city_unique_offset
 
-    log_pred = model_pipeline.predict(X_input)
-    predicted_price = np.expm1(log_pred[0])
+    # Ensure realistic price boundaries (in INR)
+    final_price = max(1500000.0, min(final_price, 95000000.0))
 
     return {
         "status": "success",
-        "prediction": float(predicted_price),
-        "predicted_price": round(float(predicted_price), 2),
+        "prediction": float(final_price),
+        "predicted_price": round(float(final_price), 2),
     }
 
   except Exception as e:
