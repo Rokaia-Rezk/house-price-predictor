@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-app = FastAPI(title="House Price Prediction API", version="3.0.0")
+app = FastAPI(title="House Price Prediction API", version="4.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,7 +19,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(BASE_DIR, "locations.json")
 
 
-@app.get("/", response_class=HTMLResponse, tags=["Frontend"])
+@app.get("/", response_class=HTMLResponse)
 def read_root():
   html_path = os.path.join(BASE_DIR, "index.html")
   if not os.path.exists(html_path):
@@ -27,32 +27,18 @@ def read_root():
   if os.path.exists(html_path):
     with open(html_path, "r", encoding="utf-8") as f:
       return f.read()
-  return "<h1>House Price Predictor API is Running!</h1>"
+  return "<h1>API is Running!</h1>"
 
 
-@app.get("/locations.json", tags=["Metadata"])
+@app.get("/locations.json")
 def get_locations():
   if os.path.exists(json_path):
     with open(json_path, "r", encoding="utf-8") as f:
       return json.load(f)
-  return [
-      "agra", "ahmedabad", "allahabad", "aurangabad", "badlapur", "bangalore", 
-      "bhiwadi", "bhubaneswar", "chandigarh", "chennai", "coimbatore", "dehradun", 
-      "faridabad", "ghaziabad", "goa", "greater-noida", "guntur", "gurgaon", 
-      "guwahati", "hyderabad", "jaipur", "jamshedpur", "kalyan", "kanpur", 
-      "kochi", "kolkata", "lucknow", "mangalore", "mohali", "mumbai", "nagpur", 
-      "nashik", "navi-mumbai", "new-delhi", "noida", "other", "palghar", 
-      "panchkula", "patna", "pune", "raipur", "ranchi", "siliguri", "sonipat", 
-      "surat", "thane", "vadodara", "varanasi", "vijayawada", "visakhapatnam", "zirakpur"
-  ]
+  return ["mumbai", "new-delhi", "bangalore", "pune", "chennai", "badlapur", "agra", "other"]
 
 
-@app.get("/health", tags=["Health"])
-def health_check():
-  return {"status": "healthy", "engine": "Clean_Realistic_Pricing"}
-
-
-@app.post("/predict", tags=["Prediction"])
+@app.post("/predict")
 async def predict(request: Request):
   try:
     content_type = request.headers.get("content-type", "")
@@ -65,42 +51,57 @@ async def predict(request: Request):
     if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
       data = data["data"]
 
-    # Extract inputs safely
+    # قراءة المدخلات بدقة
     area = float(data.get("carpet_area_sqft", data.get("area", 1200)))
     beds = float(data.get("bedrooms", 2))
     baths = float(data.get("bathrooms", 2))
     balconies = float(data.get("balconies", 1))
     
-    location = str(data.get("location", "Other")).strip().lower()
+    location = str(data.get("location", "other")).strip().lower()
     furnishing = str(data.get("furnishing", "Semi-Furnished")).strip().lower()
     facing = str(data.get("facing", "North")).strip().lower()
-    transaction = str(data.get("transaction", "Resale")).strip().lower()
-    ownership = str(data.get("ownership", "Freehold")).strip().lower()
 
-    # Realistic base calculation for Indian real estate market scale
-    base_price = 1500000 + (area * 3500) + (beds * 200000) + (baths * 100000) + (balconies * 50000)
+    # 1. الأساس بناءً على المساحة والغرف
+    price = 1000000 + (area * 4000) + (beds * 250000) + (baths * 150000) + (balconies * 50000)
 
-    # City multipliers
-    tier1 = ["mumbai", "new-delhi", "bangalore", "hyderabad", "chennai", "gurgaon", "pune", "kolkata", "navi-mumbai"]
-    tier2 = ["agra", "ahmedabad", "jaipur", "lucknow", "chandigarh", "kochi", "surat", "bhubaneswar", "vadodara", "thane"]
-    
-    if location in tier1:
-      loc_factor = 1.5
-    elif location in tier2:
-      loc_factor = 1.2
-    else:
-      loc_factor = 1.0
+    # 2. تأثير المدن (ميزان دقيق لكل مدينة عشان الأرقام ما تتشابهش)
+    location_weights = {
+        "mumbai": 2.8,
+        "new-delhi": 2.4,
+        "bangalore": 2.1,
+        "gurgaon": 2.2,
+        "hyderabad": 1.9,
+        "pune": 1.8,
+        "chennai": 1.7,
+        "kolkata": 1.5,
+        "agra": 1.1,
+        "badlapur": 0.9,
+        "other": 1.0
+    }
+    loc_multiplier = location_weights.get(location, 1.2)
+    price = price * loc_multiplier
 
-    # Modifiers
-    furnish_factor = 1.15 if "furnished" in furnishing else (1.05 if "semi" in furnishing else 1.0)
-    facing_factor = 1.08 if facing in ["east", "north-east"] else 1.0
-    trans_factor = 1.1 if "new" in transaction else 1.0
+    # 3. تأثير الاتجاه (Facing) عشان يتغير فوراً لو اتغير الاتجاه
+    facing_weights = {
+        "north": 1.02,
+        "east": 1.12,
+        "south": 0.98,
+        "west": 1.0,
+        "north-east": 1.15,
+        "north-west": 1.03,
+        "south-east": 1.05,
+        "south-west": 0.95
+    }
+    facing_multiplier = facing_weights.get(facing, 1.0)
+    price = price * facing_multiplier
 
-    final_price = base_price * loc_factor * furnish_factor * facing_factor * trans_factor
+    # 4. تأثير الفرش
+    if "furnished" in furnishing and "semi" not in furnishing:
+      price *= 1.15
+    elif "semi" in furnishing:
+      price *= 1.07
 
-    # Clean rounding to avoid weird decimal tails
-    final_price = round(final_price, -3)
-    final_price = max(800000.0, min(final_price, 50000000.0))
+    final_price = round(price, -3)
 
     return {
         "status": "success",
