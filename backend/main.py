@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(BASE_DIR, "locations.json")
 model_path = os.path.join(BASE_DIR, "model.pkl")
 
-# Generate a truly location-sensitive smart Random Forest fallback model if missing
+# Generate a robust, precisely-ordered fallback Random Forest model if missing
 if not os.path.exists(model_path) or os.path.getsize(model_path) < 1000:
   try:
     from sklearn.ensemble import RandomForestRegressor
@@ -30,7 +30,7 @@ if not os.path.exists(model_path) or os.path.getsize(model_path) < 1000:
     from sklearn.preprocessing import StandardScaler
 
     np.random.seed(42)
-    n_samples = 500
+    n_samples = 600
     syn_area = np.random.uniform(400, 5000, n_samples)
     syn_beds = np.random.randint(1, 5, n_samples)
     syn_baths = np.random.randint(1, 4, n_samples)
@@ -38,34 +38,39 @@ if not os.path.exists(model_path) or os.path.getsize(model_path) < 1000:
     syn_floors = np.random.randint(1, 20, n_samples)
     syn_total_floors = syn_floors + np.random.randint(0, 5, n_samples)
     
-    # Location multiplier factor (simulating real price variations per city hash)
     syn_loc = np.random.randint(0, 52, n_samples)
-    loc_weights = 1.0 + (syn_loc % 15) * 0.08
-
     syn_furnishing = np.random.randint(0, 3, n_samples)
     syn_facing = np.random.randint(0, 4, n_samples)
     syn_transaction = np.random.randint(0, 2, n_samples)
     syn_ownership = np.random.randint(0, 3, n_samples)
 
+    # Strict feature order matching prediction array
     X_synthetic = np.column_stack([
         syn_area, syn_beds, syn_baths, syn_balconies, 
         syn_floors, syn_total_floors, syn_loc, syn_furnishing, 
         syn_facing, syn_transaction, syn_ownership
     ])
 
-    # Price formula tied to location and features dynamically
-    y_price = ((syn_area * 5000) + (syn_beds * 200000) + (syn_baths * 150000)) * loc_weights
-    y_price = np.clip(y_price, 800000, 85000000)
+    # Dynamic pricing formula reflecting all parameters
+    y_price = (
+        (syn_area * 5000) + 
+        (syn_beds * 250000) + 
+        (syn_baths * 150000) + 
+        (syn_loc * 40000) + 
+        (syn_facing * 30000) + 
+        (syn_furnishing * 50000)
+    )
+    y_price = np.clip(y_price, 800000, 95000000)
     y_log = np.log1p(y_price)
 
     pipeline = Pipeline([
         ("scaler", StandardScaler()),
-        ("model", RandomForestRegressor(n_estimators=40, random_state=42))
+        ("model", RandomForestRegressor(n_estimators=50, random_state=42))
     ])
     
     pipeline.fit(X_synthetic, y_log)
     joblib.dump(pipeline, model_path)
-    print("Location-sensitive fallback model pipeline generated successfully!")
+    print("Strictly ordered fallback model pipeline generated successfully!")
   except Exception as e:
     print(f"Error generating fallback model: {e}")
 
@@ -111,7 +116,7 @@ def health_check():
   return {
       "status": "healthy",
       "model_loaded": model_pipeline is not None,
-      "model_type": "Location_Sensitive_RandomForest",
+      "model_type": "Strict_Ordered_RandomForest",
   }
 
 
@@ -133,31 +138,60 @@ async def predict(request: Request):
     if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
       data = data["data"]
 
-    input_df = pd.DataFrame([data])
-
-    # Convert all object columns to stable numeric hash values so cities affect predictions
-    for col in input_df.columns:
-      if input_df[col].dtype == "object" or pd.api.types.is_string_dtype(input_df[col]):
-        input_df[col] = input_df[col].astype(str).apply(lambda x: abs(hash(x)) % 100)
-      input_df[col] = pd.to_numeric(input_df[col], errors="coerce").fillna(0)
-
-    # Ensure feature count matches exactly 11 features
-    expected_n_features = 11
+    # Extract features explicitly in the exact required training order
     try:
-      if hasattr(model_pipeline, "n_features_in_"):
-        expected_n_features = model_pipeline.n_features_in_
-      elif hasattr(model_pipeline.named_steps.get("scaler"), "n_features_in_"):
-        expected_n_features = model_pipeline.named_steps["scaler"].n_features_in_
+      area = float(data.get("carpet_area_sqft", data.get("area", 1200)))
     except:
-      pass
+      area = 1200.0
 
-    if input_df.shape[1] > expected_n_features:
-      input_df = input_df.iloc[:, :expected_n_features]
-    elif input_df.shape[1] < expected_n_features:
-      while input_df.shape[1] < expected_n_features:
-        input_df[f"extra_{input_df.shape[1]}"] = 0
+    try:
+      beds = float(data.get("bedrooms", 2))
+    except:
+      beds = 2.0
 
-    log_pred = model_pipeline.predict(input_df)
+    try:
+      baths = float(data.get("bathrooms", data.get("bathroom", 2)))
+    except:
+      baths = 2.0
+
+    try:
+      balconies = float(data.get("balconies", data.get("balcony", 1)))
+    except:
+      balconies = 1.0
+
+    try:
+      floor_num = float(data.get("floor_num", data.get("floor", 2)))
+    except:
+      floor_num = 2.0
+
+    try:
+      total_floors = float(data.get("total_floors", 5))
+    except:
+      total_floors = 5.0
+
+    # Categorical fields encoded to numeric hashes
+    location_val = float(abs(hash(str(data.get("location", "Other")))) % 52)
+    furnishing_val = float(abs(hash(str(data.get("furnishing", "Semi-Furnished")))) % 3)
+    facing_val = float(abs(hash(str(data.get("facing", "North")))) % 4)
+    transaction_val = float(abs(hash(str(data.get("transaction", "Resale")))) % 2)
+    ownership_val = float(abs(hash(str(data.get("ownership", "Freehold")))) % 3)
+
+    # Build the strict 11-feature numpy array
+    X_input = np.array([[
+        area,
+        beds,
+        baths,
+        balconies,
+        floor_num,
+        total_floors,
+        location_val,
+        furnishing_val,
+        facing_val,
+        transaction_val,
+        ownership_val
+    ]])
+
+    log_pred = model_pipeline.predict(X_input)
     predicted_price = np.expm1(log_pred[0])
 
     return {
