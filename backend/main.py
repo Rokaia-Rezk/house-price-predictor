@@ -23,35 +23,40 @@ json_path = os.path.join(BASE_DIR, "locations.json")
 class RealEstateModelPredictor:
     def predict(self, df):
         try:
-            # Helper function to safely extract values supporting multiple possible key names from frontend
-            def get_val(keys, default_val):
-                for k in keys:
-                    if k in df.columns and pd.notna(df[k].iloc[0]):
+            # Normalize all dataframe column names to lowercase for case-insensitive matching
+            df_lower = df.copy()
+            df_lower.columns = [str(col).strip().lower() for col in df_lower.columns]
+            
+            # Helper function to safely extract and clamp numerical values
+            def get_numeric(keys, default_val, min_val=0.0, max_val=1000000.0):
+                for key in keys:
+                    if key in df_lower.columns and pd.notna(df_lower[key].iloc[0]):
                         try:
-                            return float(df[k].iloc[0])
+                            val = float(df_lower[key].iloc[0])
+                            return max(min_val, min(val, max_val))
                         except:
                             pass
                 return default_val
 
-            def get_str_val(keys, default_val):
-                for k in keys:
-                    if k in df.columns and pd.notna(df[k].iloc[0]):
-                        return str(df[k].iloc[0]).strip().lower()
+            def get_string(keys, default_val):
+                for key in keys:
+                    if key in df_lower.columns and pd.notna(df_lower[key].iloc[0]):
+                        return str(df_lower[key].iloc[0]).strip().lower()
                 return default_val
 
-            # Extract all parameters securely with flexible matching
-            area = get_val(['carpet_area_sqft', 'carpet_area', 'area'], 1000.0)
-            bedrooms = get_val(['bedrooms', 'bed', 'beds'], 2.0)
-            bathrooms = get_val(['bathrooms', 'bath', 'baths'], 2.0)
-            balconies = get_val(['balconies', 'balcony'], 1.0)
-            floor_num = get_val(['floor_num', 'floor', 'floor_number'], 1.0)
-            total_floors = get_val(['total_floors', 'total_floor'], 5.0)
+            # Extract features with comprehensive key variations and realistic value clamping
+            area = get_numeric(['carpet_area_sqft', 'carpet_area', 'area', 'carpet area (sqft)'], 1000.0, 100.0, 50000.0)
+            bedrooms = get_numeric(['bedrooms', 'bed', 'beds', 'bedroom'], 2.0, 1.0, 20.0)
+            bathrooms = get_numeric(['bathrooms', 'bath', 'baths', 'bathroom'], 2.0, 1.0, 20.0)
+            balconies = get_numeric(['balconies', 'balcony'], 1.0, 0.0, 10.0)
+            floor_num = get_numeric(['floor_num', 'floor', 'floor_number', 'floor number'], 1.0, 0.0, 100.0)
+            total_floors = get_numeric(['total_floors', 'total_floor', 'total floors'], 5.0, 1.0, 100.0)
             
-            location = get_str_val(['location', 'city', 'place'], 'other')
-            furnishing = get_str_val(['furnishing', 'furnish_status'], 'semi-furnished')
-            transaction = get_str_val(['transaction', 'transaction_type'], 'resale')
+            location = get_string(['location', 'city', 'place'], 'other')
+            furnishing = get_string(['furnishing', 'furnish_status'], 'semi-furnished')
+            transaction = get_string(['transaction', 'transaction_type'], 'resale')
             
-            # Real-world location base weights based on data analysis
+            # Location base weights dictionary
             location_weights = {
                 "mumbai": 18000000,
                 "new-delhi": 16000000,
@@ -66,26 +71,27 @@ class RealEstateModelPredictor:
                 "greater-noida": 7500000,
                 "thane": 11000000,
                 "navi-mumbai": 10500000,
-                "zirakpur": 4500000
+                "zirakpur": 4500000,
+                "coimbatore": 6000000
             }
             
             loc_base = location_weights.get(location, 4500000.0)
             
-            # Comprehensive regression coefficients ensuring ALL fields actively impact price
+            # Mathematical coefficients ensuring every single field actively alters the price
             base_intercept = 800000.0
-            w_area = 7500.0       
-            w_bed = 150000.0      
-            w_bath = 250000.0     # High active weight for bathrooms
-            w_balcony = 80000.0  
-            w_floor = 60000.0     # Active weight for floor number
+            w_area = 8000.0       
+            w_bed = 250000.0      
+            w_bath = 400000.0     # Active and high weight for bathrooms
+            w_balcony = 100000.0  
+            w_floor = 70000.0     
             w_total_floors = 30000.0
             
-            # Categorical multipliers
-            furnish_mult = 1.12 if 'furnish' in furnishing else 1.0
-            trans_mult = 1.18 if 'new' in transaction else 1.0
+            # Category multipliers
+            furnish_mult = 1.15 if 'furnish' in furnishing else 1.0
+            trans_mult = 1.20 if 'new' in transaction else 1.0
             
-            # Mathematical calculation incorporating every single input field
-            predicted_value = (
+            # Calculate final price
+            raw_price = (
                 base_intercept + 
                 loc_base + 
                 (area * w_area) + 
@@ -96,8 +102,7 @@ class RealEstateModelPredictor:
                 (total_floors * w_total_floors)
             ) * furnish_mult * trans_mult
             
-            # Ensure value is realistic and non-negative
-            predicted_value = max(predicted_value, 500000.0)
+            predicted_value = max(raw_price, 500000.0)
             
             return np.log1p([predicted_value])
         except Exception:
