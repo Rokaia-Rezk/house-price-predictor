@@ -23,23 +23,33 @@ json_path = os.path.join(BASE_DIR, "locations.json")
 model_path = os.path.join(BASE_DIR, "model.pkl")
 
 # Load model locally
+import os
+import joblib
+import requests
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(BASE_DIR, "model.pkl")
+
+# تحميل الملف مباشرة من هجنج فاي لو مش موجود محلياً
+if not os.path.exists(model_path):
+  print("Downloading model from Hugging Face Raw...")
+  url = "https://huggingface.co/Rokaa2006/house-price-mode/raw/main/model.pkl"
+  try:
+    response = requests.get(url, stream=True)
+    with open(model_path, "wb") as f:
+      for chunk in response.iter_content(chunk_size=32768):
+        if chunk:
+          f.write(chunk)
+    print("Model downloaded successfully!")
+  except Exception as e:
+    print(f"Failed to download model: {e}")
+
 try:
   model_pipeline = joblib.load(model_path)
-  print("Model pipeline loaded successfully from local directory!")
+  print("Model pipeline loaded successfully into memory!")
 except Exception as e:
-  print(f"Error loading model locally: {e}")
+  print(f"Error loading model: {e}")
   model_pipeline = None
-
-
-@app.get("/", response_class=HTMLResponse, tags=["Frontend"])
-def read_root():
-  html_path = os.path.join(BASE_DIR, "index.html")
-  if not os.path.exists(html_path):
-    html_path = os.path.join(BASE_DIR, "..", "frontend", "index.html")
-  if os.path.exists(html_path):
-    with open(html_path, "r", encoding="utf-8") as f:
-      return f.read()
-  return "<h1>House Price Predictor API is Running!</h1>"
 
 
 @app.get("/locations.json")
