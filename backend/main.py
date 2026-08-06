@@ -36,7 +36,7 @@ class RealEstateModelPredictor:
                             pass
                 return default_val
 
-            # Comprehensive location weights dictionary including zirakpur and all 51 cities
+            # Comprehensive location weights dictionary
             location_weights = {
                 "mumbai": 22000000,
                 "new-delhi": 19000000,
@@ -94,9 +94,9 @@ class RealEstateModelPredictor:
                 "other": 5000000
             }
 
-            # Smart Location Extractor: checks standard keys first, then scans all values to find a valid city match
+            # Smart Location Extractor
             location = 'other'
-            for k in ['location', 'city', 'place', 'loc']:
+            for k in ['location', 'city', 'place', 'loc', 'location_grouped']:
                 if k in df_lower.columns and pd.notna(df_lower[k].iloc[0]):
                     val = str(df_lower[k].iloc[0]).strip().lower()
                     if val in location_weights:
@@ -110,41 +110,65 @@ class RealEstateModelPredictor:
                         location = val
                         break
 
-            # Extract features safely
-            area = get_numeric(['carpet_area_sqft', 'carpet_area', 'area', 'carpet area (sqft)'], 1000.0, 100.0, 50000.0)
+            # Extract numeric features safely
+            area = get_numeric(['carpet_area_sqft', 'carpet_area', 'area'], 1200.0, 100.0, 50000.0)
             bedrooms = get_numeric(['bedrooms', 'bed', 'beds', 'bedroom'], 2.0, 1.0, 20.0)
             bathrooms = get_numeric(['bathrooms', 'bath', 'baths', 'bathroom'], 2.0, 1.0, 20.0)
             balconies = get_numeric(['balconies', 'balcony'], 1.0, 0.0, 10.0)
-            floor_num = get_numeric(['floor_num', 'floor', 'floor_number', 'floor number'], 1.0, 0.0, 100.0)
-            total_floors = get_numeric(['total_floors', 'total_floor', 'total floors'], 5.0, 1.0, 100.0)
+            floor_num = get_numeric(['floor_num', 'floor', 'floor_number'], 2.0, 0.0, 100.0)
+            total_floors = get_numeric(['total_floors', 'total_floor'], 5.0, 1.0, 100.0)
             
+            # Extract and evaluate categorical features with precise default multipliers based on value/preference
             furnishing_str = 'semi-furnished'
-            for col in df_lower.columns:
-                val = str(df_lower[col].iloc[0]).strip().lower()
-                if 'furnish' in val:
-                    furnishing_str = val
+            for col in ['furnishing', 'furnish']:
+                if col in df_lower.columns and pd.notna(df_lower[col].iloc[0]):
+                    furnishing_str = str(df_lower[col].iloc[0]).strip().lower()
                     break
 
+            # Precise evaluation for Furnishing (Unfurnished vs Semi-Furnished vs Furnished)
+            if 'unfurnished' in furnishing_str:
+                furnish_mult = 1.0
+            elif 'semi' in furnishing_str:
+                furnish_mult = 1.06
+            elif 'furnished' in furnishing_str:
+                furnish_mult = 1.12
+            else:
+                furnish_mult = 1.06
+
+            # Transaction type (Resale vs New)
             transaction_str = 'resale'
-            for col in df_lower.columns:
-                val = str(df_lower[col].iloc[0]).strip().lower()
-                if val in ['resale', 'new', 'booking', 'rent']:
-                    transaction_str = val
+            for col in ['transaction', 'trans']:
+                if col in df_lower.columns and pd.notna(df_lower[col].iloc[0]):
+                    transaction_str = str(df_lower[col].iloc[0]).strip().lower()
                     break
-            
+            trans_mult = 1.10 if ('new' in transaction_str or 'booking' in transaction_str) else 1.0
+
+            # Facing direction preference (North/East/North-East get preference boost)
+            facing_str = 'north'
+            for col in ['facing', 'face']:
+                if col in df_lower.columns and pd.notna(df_lower[col].iloc[0]):
+                    facing_str = str(df_lower[col].iloc[0]).strip().lower()
+                    break
+            facing_mult = 1.04 if any(d in facing_str for d in ['north', 'east']) else 1.0
+
+            # Ownership type (Freehold preferred over leasehold)
+            ownership_str = 'freehold'
+            for col in ['ownership', 'owner']:
+                if col in df_lower.columns and pd.notna(df_lower[col].iloc[0]):
+                    ownership_str = str(df_lower[col].iloc[0]).strip().lower()
+                    break
+            owner_mult = 1.03 if 'free' in ownership_str else 1.0
+
             loc_base = location_weights.get(location, 5000000.0)
             
             # Mathematical coefficients
             base_intercept = 500000.0
-            w_area = 7500.0       
+            w_area = 7500.0        
             w_bed = 200000.0      
             w_bath = 300000.0     
             w_balcony = 80000.0  
             w_floor = 50000.0     
             w_total_floors = 20000.0
-            
-            furnish_mult = 1.12 if 'furnish' in furnishing_str else 1.0
-            trans_mult = 1.15 if 'new' in transaction_str else 1.0
             
             raw_price = (
                 base_intercept + 
@@ -155,7 +179,7 @@ class RealEstateModelPredictor:
                 (balconies * w_balcony) + 
                 (floor_num * w_floor) +
                 (total_floors * w_total_floors)
-            ) * furnish_mult * trans_mult
+            ) * furnish_mult * trans_mult * facing_mult * owner_mult
             
             predicted_value = max(raw_price, 500000.0)
             
