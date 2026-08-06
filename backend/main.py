@@ -1,12 +1,11 @@
 import json
 import os
 import traceback
-import fastapi
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-app = FastAPI(title="House Price Prediction API", version="2.0.0")
+app = FastAPI(title="House Price Prediction API", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,7 +49,7 @@ def get_locations():
 
 @app.get("/health", tags=["Health"])
 def health_check():
-  return {"status": "healthy", "engine": "Responsive_Deterministic_Pricing"}
+  return {"status": "healthy", "engine": "Clean_Realistic_Pricing"}
 
 
 @app.post("/predict", tags=["Prediction"])
@@ -66,70 +65,47 @@ async def predict(request: Request):
     if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
       data = data["data"]
 
-    # Extract inputs safely with defaults
+    # Extract inputs safely
     area = float(data.get("carpet_area_sqft", data.get("area", 1200)))
     beds = float(data.get("bedrooms", 2))
     baths = float(data.get("bathrooms", 2))
     balconies = float(data.get("balconies", 1))
-    floor = float(data.get("floor_num", 2))
-    total_floors = float(data.get("total_floors", 5))
-
+    
     location = str(data.get("location", "Other")).strip().lower()
     furnishing = str(data.get("furnishing", "Semi-Furnished")).strip().lower()
     facing = str(data.get("facing", "North")).strip().lower()
     transaction = str(data.get("transaction", "Resale")).strip().lower()
     ownership = str(data.get("ownership", "Freehold")).strip().lower()
 
-    # Base price calculation based on area and rooms
-    base_price = (area * 5500) + (beds * 350000) + (baths * 200000) + (balconies * 75000)
+    # Realistic base calculation for Indian real estate market scale
+    base_price = 1500000 + (area * 3500) + (beds * 200000) + (baths * 100000) + (balconies * 50000)
 
-    # Location multiplier weights (Tier-1 vs Tier-2 vs Others)
-    tier1_cities = ["mumbai", "new-delhi", "bangalore", "hyderabad", "chennai", "gurgaon", "pune", "kolkata", "navi-mumbai"]
-    tier2_cities = ["agra", "ahmedabad", "jaipur", "lucknow", "chandigarh", "kochi", "indore", "surat", "bhubaneswar", "vadodara", "thane"]
+    # City multipliers
+    tier1 = ["mumbai", "new-delhi", "bangalore", "hyderabad", "chennai", "gurgaon", "pune", "kolkata", "navi-mumbai"]
+    tier2 = ["agra", "ahmedabad", "jaipur", "lucknow", "chandigarh", "kochi", "surat", "bhubaneswar", "vadodara", "thane"]
     
-    if location in tier1_cities:
-      loc_multiplier = 1.65
-    elif location in tier2_cities:
-      loc_multiplier = 1.25
+    if location in tier1:
+      loc_factor = 1.5
+    elif location in tier2:
+      loc_factor = 1.2
     else:
-      loc_multiplier = 1.0
+      loc_factor = 1.0
 
-    # Facing multiplier
-    facing_weights = {
-        "north": 1.08,
-        "east": 1.15,
-        "south": 1.02,
-        "west": 1.0,
-        "north-east": 1.18
-    }
-    facing_multiplier = facing_weights.get(facing, 1.05)
+    # Modifiers
+    furnish_factor = 1.15 if "furnished" in furnishing else (1.05 if "semi" in furnishing else 1.0)
+    facing_factor = 1.08 if facing in ["east", "north-east"] else 1.0
+    trans_factor = 1.1 if "new" in transaction else 1.0
 
-    # Furnishing multiplier
-    furnish_weights = {
-        "furnished": 1.2,
-        "semi-furnished": 1.1,
-        "unfurnished": 1.0
-    }
-    furnish_multiplier = furnish_weights.get(furnishing, 1.05)
+    final_price = base_price * loc_factor * furnish_factor * facing_factor * trans_factor
 
-    # Transaction & Ownership modifiers
-    trans_multiplier = 1.15 if "new" in transaction else 1.0
-    owner_multiplier = 1.1 if "freehold" in ownership else 1.0
-
-    # Final price computation
-    final_price = base_price * loc_multiplier * facing_multiplier * furnish_multiplier * trans_multiplier * owner_multiplier
-    
-    # Add a unique offset per city so every city name gives a distinct, realistic price variation
-    city_unique_offset = (abs(hash(location)) % 400000) - 200000
-    final_price += city_unique_offset
-
-    # Ensure realistic price boundaries (in INR)
-    final_price = max(1500000.0, min(final_price, 95000000.0))
+    # Clean rounding to avoid weird decimal tails
+    final_price = round(final_price, -3)
+    final_price = max(800000.0, min(final_price, 50000000.0))
 
     return {
         "status": "success",
         "prediction": float(final_price),
-        "predicted_price": round(float(final_price), 2),
+        "predicted_price": float(final_price),
     }
 
   except Exception as e:
