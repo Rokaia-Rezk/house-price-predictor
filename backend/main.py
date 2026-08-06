@@ -36,25 +36,7 @@ class RealEstateModelPredictor:
                             pass
                 return default_val
 
-            def get_string(keys, default_val):
-                for key in keys:
-                    if key in df_lower.columns and pd.notna(df_lower[key].iloc[0]):
-                        return str(df_lower[key].iloc[0]).strip().lower()
-                return default_val
-
-            # Extract features safely
-            area = get_numeric(['carpet_area_sqft', 'carpet_area', 'area', 'carpet area (sqft)'], 1000.0, 100.0, 50000.0)
-            bedrooms = get_numeric(['bedrooms', 'bed', 'beds', 'bedroom'], 2.0, 1.0, 20.0)
-            bathrooms = get_numeric(['bathrooms', 'bath', 'baths', 'bathroom'], 2.0, 1.0, 20.0)
-            balconies = get_numeric(['balconies', 'balcony'], 1.0, 0.0, 10.0)
-            floor_num = get_numeric(['floor_num', 'floor', 'floor_number', 'floor number'], 1.0, 0.0, 100.0)
-            total_floors = get_numeric(['total_floors', 'total_floor', 'total floors'], 5.0, 1.0, 100.0)
-            
-            location = get_string(['location', 'city', 'place'], 'other')
-            furnishing = get_string(['furnishing', 'furnish_status'], 'semi-furnished')
-            transaction = get_string(['transaction', 'transaction_type'], 'resale')
-            
-            # Comprehensive and realistic price weights for all 51 Indian cities based on real market averages
+            # Comprehensive location weights dictionary including zirakpur and all 51 cities
             location_weights = {
                 "mumbai": 22000000,
                 "new-delhi": 19000000,
@@ -108,8 +90,47 @@ class RealEstateModelPredictor:
                 "guntur": 5800000,
                 "siliguri": 5200000,
                 "mangalore": 6500000,
+                "zirakpur": 6000000,
                 "other": 5000000
             }
+
+            # Smart Location Extractor: checks standard keys first, then scans all values to find a valid city match
+            location = 'other'
+            for k in ['location', 'city', 'place', 'loc']:
+                if k in df_lower.columns and pd.notna(df_lower[k].iloc[0]):
+                    val = str(df_lower[k].iloc[0]).strip().lower()
+                    if val in location_weights:
+                        location = val
+                        break
+            
+            if location == 'other':
+                for col in df_lower.columns:
+                    val = str(df_lower[col].iloc[0]).strip().lower()
+                    if val in location_weights:
+                        location = val
+                        break
+
+            # Extract features safely
+            area = get_numeric(['carpet_area_sqft', 'carpet_area', 'area', 'carpet area (sqft)'], 1000.0, 100.0, 50000.0)
+            bedrooms = get_numeric(['bedrooms', 'bed', 'beds', 'bedroom'], 2.0, 1.0, 20.0)
+            bathrooms = get_numeric(['bathrooms', 'bath', 'baths', 'bathroom'], 2.0, 1.0, 20.0)
+            balconies = get_numeric(['balconies', 'balcony'], 1.0, 0.0, 10.0)
+            floor_num = get_numeric(['floor_num', 'floor', 'floor_number', 'floor number'], 1.0, 0.0, 100.0)
+            total_floors = get_numeric(['total_floors', 'total_floor', 'total floors'], 5.0, 1.0, 100.0)
+            
+            furnishing_str = 'semi-furnished'
+            for col in df_lower.columns:
+                val = str(df_lower[col].iloc[0]).strip().lower()
+                if 'furnish' in val:
+                    furnishing_str = val
+                    break
+
+            transaction_str = 'resale'
+            for col in df_lower.columns:
+                val = str(df_lower[col].iloc[0]).strip().lower()
+                if val in ['resale', 'new', 'booking', 'rent']:
+                    transaction_str = val
+                    break
             
             loc_base = location_weights.get(location, 5000000.0)
             
@@ -122,8 +143,8 @@ class RealEstateModelPredictor:
             w_floor = 50000.0     
             w_total_floors = 20000.0
             
-            furnish_mult = 1.12 if 'furnish' in furnishing else 1.0
-            trans_mult = 1.15 if 'new' in transaction else 1.0
+            furnish_mult = 1.12 if 'furnish' in furnishing_str else 1.0
+            trans_mult = 1.15 if 'new' in transaction_str else 1.0
             
             raw_price = (
                 base_intercept + 
