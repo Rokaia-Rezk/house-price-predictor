@@ -1,6 +1,7 @@
 import os
 import json
 import traceback
+import joblib
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Request
@@ -19,45 +20,14 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(BASE_DIR, "locations.json")
+model_path = os.path.join(BASE_DIR, "model.pkl")
 
-class RealEstateModelPredictor:
-    def predict(self, df):
-        try:
-            # Extract features safely with robust default fallbacks
-            area = float(df['carpet_area_sqft'].iloc[0]) if 'carpet_area_sqft' in df.columns else 1200.0
-            bedrooms = float(df['bedrooms'].iloc[0]) if 'bedrooms' in df.columns else 2.0
-            bathrooms = float(df['bathroom'].iloc[0]) if 'bathroom' in df.columns else 2.0
-            balconies = float(df['balcony'].iloc[0]) if 'balcony' in df.columns else 1.0
-            floor = float(df['floor_num'].iloc[0]) if 'floor_num' in df.columns else 1.0
-            
-            location = str(df['location_grouped'].iloc[0]).lower() if 'location_grouped' in df.columns else "other"
-            furnishing = str(df['Furnishing'].iloc[0]) if 'Furnishing' in df.columns else "Semi-Furnished"
-
-            # Base model intercept weights simulation
-            base_price = 2000000.0  
-            
-            # Location multiplier based on tier markets
-            location_multiplier = 1.5 if location in ["bangalore", "mumbai", "delhi", "chennai"] else 1.15
-            
-            # Furnishing status bonus adjustment
-            furnishing_bonus = 300000.0 if furnishing == "Furnished" else (150000.0 if furnishing == "Semi-Furnished" else 0.0)
-
-            # Ensemble regression calculation based on spatial and categorical weights
-            predicted_value = (
-                base_price 
-                + (area * 4500.0) 
-                + (bedrooms * 250000.0) 
-                + (bathrooms * 180000.0) 
-                + (balconies * 75000.0)
-                + (floor * 50000.0)
-                + furnishing_bonus
-            ) * location_multiplier
-            
-            return np.log1p([predicted_value])
-        except Exception:
-            return np.log1p([4500000.0])
-
-model_pipeline = RealEstateModelPredictor()
+# Load the trained machine learning model pipeline
+try:
+    model_pipeline = joblib.load(model_path)
+except Exception as e:
+    print(f"Error loading model: {e}")
+    model_pipeline = None
 
 @app.get("/", response_class=HTMLResponse, tags=["Frontend"])
 def read_root():
@@ -83,7 +53,7 @@ def health_check():
     """Health check endpoint to verify pipeline deployment status"""
     return {
         "status": "healthy", 
-        "model_loaded": True,
+        "model_loaded": model_pipeline is not None,
         "model_type": "GradientBoosting_Regressor_Pipeline"
     }
 
@@ -103,6 +73,11 @@ async def predict(request: Request):
 
         # Parse request payload into inference dataframe
         df_input = pd.DataFrame([data])
+        
+        if model_pipeline is None:
+            raise HTTPException(status_code=500, detail="Trained model is not loaded on the server.")
+
+        # Predict using the original trained model pipeline
         pred_log = model_pipeline.predict(df_input)
         
         # Inverse transform log-scale predictions
@@ -115,5 +90,4 @@ async def predict(request: Request):
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
-    
     
