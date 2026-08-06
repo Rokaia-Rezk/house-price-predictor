@@ -237,7 +237,8 @@
                 });
                 const resData = await response.json();
                 if (response.ok) {
-                    resultBox.innerText = `Predicted Price: ₹ ${resData.prediction.toLocaleString('en-IN', {maximumFractionDigits: 2})}`;
+                    const priceInEGP = resData.prediction * 0.52;
+                    resultBox.innerText = `Predicted Price: ج.م ${priceInEGP.toLocaleString('en-US', {maximumFractionDigits: 2})}`;
                 } else {
                     resultBox.innerText = `Error: ${resData.detail || 'Making prediction failed'}`;
                 }
