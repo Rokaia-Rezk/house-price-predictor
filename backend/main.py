@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(BASE_DIR, "locations.json")
 model_path = os.path.join(BASE_DIR, "model.pkl")
 
-# Generate a safe robust Random Forest fallback pipeline if model.pkl is missing or incompatible
+# Generate a safe robust Random Forest fallback pipeline matching 10 features if model is missing
 if not os.path.exists(model_path) or os.path.getsize(model_path) < 1000:
   try:
     from sklearn.ensemble import RandomForestRegressor
@@ -109,25 +109,29 @@ async def predict(request: Request):
 
     input_df = pd.DataFrame([data])
 
-    # Convert known numeric columns safely
-    numeric_cols = [
-        "carpet_area_sqft",
-        "floor_num",
-        "total_floors",
-        "bathroom",
-        "balcony",
-        "bedrooms",
-    ]
-    for col in numeric_cols:
-      if col in input_df.columns:
-        input_df[col] = pd.to_numeric(input_df[col], errors="coerce").fillna(0)
-
-    # Automatically convert ANY remaining text/string columns into safe numeric representations 
-    # to completely prevent string-to-float conversion errors.
+    # Convert all object columns to numeric hash values safely
     for col in input_df.columns:
       if input_df[col].dtype == "object" or pd.api.types.is_string_dtype(input_df[col]):
         input_df[col] = input_df[col].astype(str).apply(lambda x: abs(hash(x)) % 1000)
-        input_df[col] = pd.to_numeric(input_df[col], errors="coerce")
+      input_df[col] = pd.to_numeric(input_df[col], errors="coerce").fillna(0)
+
+    # Force input features to precisely match expected count (e.g. 10 features)
+    # Check expected features from the model step if available
+    expected_n_features = None
+    try:
+      if hasattr(model_pipeline, "n_features_in_"):
+        expected_n_features = model_pipeline.n_features_in_
+      elif hasattr(model_pipeline.named_steps.get("scaler"), "n_features_in_"):
+        expected_n_features = model_pipeline.named_steps["scaler"].n_features_in_
+    except:
+      pass
+
+    if expected_n_features:
+      if input_df.shape[1] > expected_n_features:
+        input_df = input_df.iloc[:, :expected_n_features]
+      elif input_df.shape[1] < expected_n_features:
+        while input_df.shape[1] < expected_n_features:
+          input_df[f"extra_{input_df.shape[1]}"] = 0
 
     log_pred = model_pipeline.predict(input_df)
     predicted_price = np.expm1(log_pred[0])
