@@ -24,20 +24,23 @@ model_path = os.path.join(BASE_DIR, "model.pkl")
 
 # Load the real trained model pipeline (100% actual model)
 import traceback
-import pickle
 import os
+import requests
 
-model_path = os.path.join(BASE_DIR, "model.pkl")
+model_path = os.path.join(os.path.dirname(__file__), "model.pkl")
 
-try:
-  with open(model_path, "rb") as f:
-    model_pipeline = pickle.load(f)
-  print("MODEL LOADED SUCCESSFULLY!")
-except Exception as e:
-  print("=== CRITICAL ERROR LOADING MODEL ===")
-  traceback.print_exc()
-  print(f"Error message: {str(e)}")
-  model_pipeline = None
+if not os.path.exists(model_path):
+  print("Downloading model from Google Drive...")
+  # رابط التحميل المباشر من جوجل درايف
+  file_id = "14-QaF4VBtlpAGPP-7fY6rsba3Va_9MQX"
+  url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+  response = requests.get(url, stream=True)
+  with open(model_path, "wb") as f:
+    for chunk in response.iter_content(chunk_size=32768):
+      if chunk:
+        f.write(chunk)
+  print("Model downloaded successfully!")
 
 
 @app.get("/", response_class=HTMLResponse, tags=["Frontend"])
