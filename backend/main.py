@@ -30,28 +30,16 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "model.pkl")
 
 import os
-import requests
 import joblib
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "model.pkl")
 
-if not os.path.exists(model_path):
-  print("Downloading model from Hugging Face...")
-  url = "https://huggingface.co/Rokaa2006/house-price-mode/raw/main/model.pkl"
-
-  response = requests.get(url, stream=True)
-  with open(model_path, "wb") as f:
-    for chunk in response.iter_content(chunk_size=32768):
-      if chunk:
-        f.write(chunk)
-  print("Model downloaded successfully!")
-
 try:
   model_pipeline = joblib.load(model_path)
-  print("Model pipeline loaded successfully into memory!")
+  print("Model pipeline loaded successfully from local directory!")
 except Exception as e:
-  print(f"Error loading model: {e}")
+  print(f"Error loading model locally: {e}")
   model_pipeline = None
 
 
