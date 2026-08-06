@@ -38,9 +38,7 @@ model_path = os.path.join(BASE_DIR, "model.pkl")
 
 if not os.path.exists(model_path):
   print("Downloading model from Hugging Face...")
-  url = (
-      "https://huggingface.co/Rokaa2006/house-price-mode/resolve/main/model.pkl"
-  )
+  url = "https://huggingface.co/Rokaa2006/house-price-mode/raw/main/model.pkl"
 
   response = requests.get(url, stream=True)
   with open(model_path, "wb") as f:
