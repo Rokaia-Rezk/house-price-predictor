@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import traceback
 import joblib
 import numpy as np
@@ -22,19 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 json_path = os.path.join(BASE_DIR, "locations.json")
 model_path = os.path.join(BASE_DIR, "model.pkl")
 
-import os
-import requests
-import joblib
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "model.pkl")
-
-import os
-import joblib
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "model.pkl")
-
+# Load model locally
 try:
   model_pipeline = joblib.load(model_path)
   print("Model pipeline loaded successfully from local directory!")
@@ -89,10 +77,8 @@ async def predict(request: Request):
     if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
       data = data["data"]
 
-    # Convert request dictionary into a DataFrame matching training features
     input_df = pd.DataFrame([data])
 
-    # Ensure numeric columns are properly converted
     numeric_cols = [
         "carpet_area_sqft",
         "floor_num",
@@ -104,7 +90,6 @@ async def predict(request: Request):
       if col in input_df.columns:
         input_df[col] = pd.to_numeric(input_df[col], errors="coerce")
 
-    # Predict using the real pipeline (applying expm1 since training used log1p)
     log_pred = model_pipeline.predict(input_df)
     predicted_price = np.expm1(log_pred[0])
 
