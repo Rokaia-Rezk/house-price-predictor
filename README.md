@@ -170,7 +170,7 @@ npm run dev
 
 The frontend application will run at http://localhost:5173.
 
-
+**Note: This project is currently a prototype under active development and model refinement🚀**
 
 ## 💡 Author
 * **Rokaia Hassan Mokhtar Rezk**  
