@@ -176,6 +176,5 @@ The frontend application will run at http://localhost:5173.
 * **Rokaia Hassan Mokhtar Rezk**  
 * **AI Solutions & Data Analytics Engineer** (Specializing in Machine Learning, Prompt Engineering, Human Behavior Analysis & Psychology)
 
-<!-- Vercel Analytics -->
-<script defer src="/_vercel/insights/script.js"></script>
+
 
